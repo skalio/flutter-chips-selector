@@ -83,13 +83,14 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                 ),
                 child: Container(
                   padding: EdgeInsets.only(top: 2),
-                  child:Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  alignment: WrapAlignment.start,
-                  direction: Axis.horizontal,
-                  children: _getWrapWidgets(),
-                ),),
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    alignment: WrapAlignment.start,
+                    direction: Axis.horizontal,
+                    children: _getWrapWidgets(),
+                  ),
+                ),
               ),
             ),
           ),
@@ -133,6 +134,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
             _overlayEntry.markNeedsBuild();
           },
           onEditingComplete: () {
+            editFocus.unfocus();
             if (currentTextController.text.length > 0) {
               //try to take first entry from suggestions
             }
