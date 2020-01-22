@@ -79,7 +79,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
               decoration: widget.decoration,
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  minHeight: 28.0,
+                  minHeight: 18.0,
                 ),
                 child: Container(
                   padding: EdgeInsets.only(top: 2),
