@@ -121,7 +121,6 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
       },
       focusNode: FocusNode(skipTraversal: true),
       child: Container(
-        padding: EdgeInsets.all(4),
         child: EditableText(
           keyboardAppearance: Brightness.dark,
           key: editKey,
