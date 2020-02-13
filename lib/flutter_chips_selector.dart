@@ -37,6 +37,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   FocusNode editFocus = FocusNode();
   GlobalKey editKey = GlobalKey();
   OverlayEntry _overlayEntry;
+  Timer searchOnStoppedTyping;
 
   List<T> _items = [];
   List<T> _suggestions = [];
@@ -125,12 +126,21 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
           keyboardAppearance: Brightness.dark,
           key: editKey,
           onChanged: (String newText) async {
-            if (newText.length > 1) {
-              _suggestions = await widget.findSuggestions(newText);
-            } else {
-              _suggestions.clear();
+            //wait some time after user has stopped typing
+            const duration = Duration(milliseconds: 100);
+            if (searchOnStoppedTyping != null) {
+              setState(() => searchOnStoppedTyping.cancel()); // clear timer
             }
-            _overlayEntry.markNeedsBuild();
+            setState(
+              () => searchOnStoppedTyping = new Timer(duration, () async {
+                if (newText.length > 1) {
+                  _suggestions = await widget.findSuggestions(newText);
+                } else {
+                  _suggestions.clear();
+                }
+                _overlayEntry.markNeedsBuild();
+              }),
+            );
           },
           onEditingComplete: () {
             editFocus.unfocus();
