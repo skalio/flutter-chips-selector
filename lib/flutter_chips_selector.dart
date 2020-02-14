@@ -5,7 +5,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-typedef ChipsBuilder<T> = Widget Function(BuildContext context, ChipsSelectorState<T> state, T data);
+typedef ChipsBuilder<T> = Widget Function(
+    BuildContext context, ChipsSelectorState<T> state, T data);
 typedef ChipsInputSuggestions<T> = FutureOr<List<T>> Function(String query);
 
 class ChipsSelector<T> extends StatefulWidget {
@@ -37,6 +38,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   FocusNode editFocus = FocusNode();
   GlobalKey editKey = GlobalKey();
   OverlayEntry _overlayEntry;
+  final LayerLink _layerLink = LayerLink();
   Timer searchOnStoppedTyping;
 
   List<T> _items = [];
@@ -78,20 +80,24 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
             },
             child: InputDecorator(
               decoration: widget.decoration,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: 18.0,
-                ),
-                child: Container(
-                  padding: EdgeInsets.only(top: 2),
-                  child: Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    alignment: WrapAlignment.start,
-                    direction: Axis.horizontal,
-                    children: _getWrapWidgets(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Container(
+                    padding: EdgeInsets.all(0),
+                    child: Wrap(
+                      spacing: 2,
+                      runSpacing: 2,
+                      alignment: WrapAlignment.start,
+                      direction: Axis.horizontal,
+                      children: _getWrapWidgets(),
+                    ),
                   ),
-                ),
+                  CompositedTransformTarget(
+                    link: this._layerLink,
+                    child: SizedBox(height: 0,),
+                  ),
+                ],
               ),
             ),
           ),
@@ -112,12 +118,15 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   Widget _buildInput() {
     return RawKeyboardListener(
       onKey: (RawKeyEvent event) {
-        if (event.isKeyPressed(LogicalKeyboardKey.delete) || event.isKeyPressed(LogicalKeyboardKey.backspace)) {
+        if (event.isKeyPressed(LogicalKeyboardKey.delete) ||
+            event.isKeyPressed(LogicalKeyboardKey.backspace)) {
           if (currentTextController.text.length == 0 && _items.length > 0) {
             setState(() {
               _items.removeLast();
             });
           }
+        } else if (event.isKeyPressed(LogicalKeyboardKey.arrowDown)) {
+          print("down");
         }
       },
       focusNode: FocusNode(skipTraversal: true),
@@ -152,7 +161,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
           maxLines: 1,
           autofocus: true,
           forceLine: false,
-          style: widget.style ?? Theme.of(context).textTheme.body1,
+          style: widget.style ?? Theme.of(context).textTheme.bodyText2,
           cursorColor: Theme.of(context).cursorColor,
           backgroundCursorColor: Theme.of(context).backgroundColor,
           focusNode: editFocus,
@@ -165,29 +174,35 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   OverlayEntry _createOverlayEntry() {
     RenderBox renderBox = context.findRenderObject();
     var size = renderBox.size;
-    var offset = renderBox.localToGlobal(Offset.zero);
 
     return OverlayEntry(
       builder: (context) => Positioned(
-        left: offset.dx,
-        top: offset.dy + size.height + 5.0,
         width: size.width,
         child: Visibility(
           visible: _suggestions.isNotEmpty,
-          child: LimitedBox(
-              maxHeight: 300,
+          child: CompositedTransformFollower(
+            link: this._layerLink,
+            showWhenUnlinked: false,
+            child: FocusScope(
               child: Material(
                 elevation: 4.0,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  addAutomaticKeepAlives: true,
-                  padding: const EdgeInsets.all(8),
-                  itemCount: _suggestions.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    return widget.suggestionBuilder(context, this, _suggestions[index]);
-                  },
+                child: LimitedBox(
+                  //suggestion list shall be one third of the viewport max
+                  maxHeight: MediaQuery.of(context).size.height / 3,
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    addAutomaticKeepAlives: true,
+                    padding: const EdgeInsets.all(8),
+                    itemCount: _suggestions.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return widget.suggestionBuilder(
+                          context, this, _suggestions[index]);
+                    },
+                  ),
                 ),
-              )),
+              ),
+            ),
+          ),
         ),
       ),
     );
