@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 typedef ChipsBuilder<T> = Widget Function(
     BuildContext context, ChipsSelectorState<T> state, T data);
 typedef ChipsInputSuggestions<T> = FutureOr<List<T>> Function(String query);
+typedef ParsedItems<T> = FutureOr<List<T>> Function(String query);
 
 class ChipsSelector<T> extends StatefulWidget {
   ChipsSelector({
@@ -17,6 +18,7 @@ class ChipsSelector<T> extends StatefulWidget {
     @required this.suggestionBuilder,
     @required this.findSuggestions,
     @required this.onChanged,
+    this.parseOnLeaving,
     this.decoration,
     this.style,
   }) : super(key: key);
@@ -26,6 +28,7 @@ class ChipsSelector<T> extends StatefulWidget {
   final ChipsInputSuggestions findSuggestions;
   final List<T> initialValue;
   final ValueChanged<List<T>> onChanged;
+  final ParsedItems parseOnLeaving;
   final InputDecoration decoration;
   final TextStyle style;
 
@@ -54,12 +57,18 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   void initState() {
     super.initState();
     _items.addAll(widget.initialValue);
-    editFocus.addListener(() {
+    editFocus.addListener(() async {
       if (editFocus.hasFocus) {
         this._overlayEntry = this._createOverlayEntry();
         Overlay.of(context).insert(this._overlayEntry);
       } else {
         this._overlayEntry.remove();
+        if (widget.parseOnLeaving != null) {
+          List<T> parsedEntries = await widget.parseOnLeaving(currentTextController.text);
+          parsedEntries.forEach((element) {
+            selectSuggestion(element);
+          });
+        }
       }
     });
   }
@@ -95,7 +104,9 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                   ),
                   CompositedTransformTarget(
                     link: this._layerLink,
-                    child: SizedBox(height: 0,),
+                    child: SizedBox(
+                      height: 0,
+                    ),
                   ),
                 ],
               ),
