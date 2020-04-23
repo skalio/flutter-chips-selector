@@ -21,6 +21,7 @@ class ChipsSelector<T> extends StatefulWidget {
     this.parseOnLeaving,
     this.decoration,
     this.style,
+    this.autofocus,
   }) : super(key: key);
 
   final ChipsBuilder chipBuilder;
@@ -31,6 +32,7 @@ class ChipsSelector<T> extends StatefulWidget {
   final ParsedItems parseOnLeaving;
   final InputDecoration decoration;
   final TextStyle style;
+  final bool autofocus;
 
   @override
   State<StatefulWidget> createState() => ChipsSelectorState<T>();
@@ -170,7 +172,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
           },
           minLines: 1,
           maxLines: 1,
-          autofocus: true,
+          autofocus: widget.autofocus ?? true,
           forceLine: false,
           style: widget.style ?? Theme.of(context).textTheme.bodyText2,
           cursorColor: Theme.of(context).cursorColor,
