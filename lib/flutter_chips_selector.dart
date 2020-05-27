@@ -59,14 +59,14 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   void initState() {
     super.initState();
     _items.addAll(widget.initialValue);
-    editFocus.addListener(() async {
+    editFocus.addListener(() {
       if (editFocus.hasFocus) {
         this._overlayEntry = this._createOverlayEntry();
         Overlay.of(context).insert(this._overlayEntry);
       } else {
         this._overlayEntry.remove();
         if (widget.parseOnLeaving != null) {
-          List<T> parsedEntries = await widget.parseOnLeaving(currentTextController.text);
+          List<T> parsedEntries = widget.parseOnLeaving(currentTextController.text);
           parsedEntries.forEach((element) {
             selectSuggestion(element);
           });
@@ -90,7 +90,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
               FocusScope.of(context).requestFocus(editFocus);
             },
             child: InputDecorator(
-              decoration: widget.decoration,
+              decoration: widget.decoration?? InputDecoration(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
