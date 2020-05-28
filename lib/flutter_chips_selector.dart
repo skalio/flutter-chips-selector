@@ -244,4 +244,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
       _overlayEntry.markNeedsBuild();
     }
   }
+
+  void triggerChange() {
+     widget.onChanged(_items);
+  }
 }
