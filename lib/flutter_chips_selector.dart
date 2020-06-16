@@ -21,7 +21,7 @@ class ChipsSelector<T> extends StatefulWidget {
     this.parseOnLeaving,
     this.decoration,
     this.style,
-    this.autofocus,
+    this.autofocus, this.textInputType = TextInputType.text,
   }) : super(key: key);
 
   final ChipsBuilder chipBuilder;
@@ -32,6 +32,7 @@ class ChipsSelector<T> extends StatefulWidget {
   final ParsedItems parseOnLeaving;
   final InputDecoration decoration;
   final TextStyle style;
+  final TextInputType textInputType;
   final bool autofocus;
 
   @override
@@ -145,6 +146,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
       focusNode: FocusNode(skipTraversal: true),
       child: Container(
         child: EditableText(
+          keyboardType: widget.textInputType,
           keyboardAppearance: Brightness.dark,
           key: editKey,
           onChanged: (String newText) async {

@@ -1,6 +1,6 @@
 name: flutter_chips_selector
 description: Flutter library for building input fields that covert text input into InputChips.
-version: 0.0.6
+version: 0.0.7
 author: Thomas Verbeek <tv@skalio.com>
 homepage: https://github.com/skalio/flutter-chips-selector
 
