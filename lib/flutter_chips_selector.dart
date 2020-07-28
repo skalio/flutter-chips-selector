@@ -5,24 +5,29 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-typedef ChipsBuilder<T> = Widget Function(
-    BuildContext context, ChipsSelectorState<T> state, T data);
+typedef ChipsBuilder<T> = Widget Function(BuildContext context, ChipsSelectorState<T> state, T data);
 typedef ChipsInputSuggestions<T> = FutureOr<List<T>> Function(String query);
 typedef ParsedItems<T> = FutureOr<List<T>> Function(String query);
 
 class ChipsSelector<T> extends StatefulWidget {
-  ChipsSelector({
-    Key key,
-    this.initialValue = const [],
-    @required this.chipBuilder,
-    @required this.suggestionBuilder,
-    @required this.findSuggestions,
-    @required this.onChanged,
-    this.parseOnLeaving,
-    this.decoration,
-    this.style,
-    this.autofocus, this.textInputType = TextInputType.text,
-  }) : super(key: key);
+  ChipsSelector(
+      {Key key,
+      this.initialValue = const [],
+      @required this.chipBuilder,
+      @required this.suggestionBuilder,
+      @required this.findSuggestions,
+      @required this.onChanged,
+      this.parseOnLeaving,
+      this.decoration,
+      this.style,
+      this.autofocus,
+      this.textInputType = TextInputType.text,
+      this.textInputAction = TextInputAction.done,
+      FocusNode currentFocus,
+      FocusNode nextFocus})
+      : this.current = currentFocus ?? FocusNode(),
+        this.next = nextFocus ?? FocusNode(),
+        super(key: key);
 
   final ChipsBuilder chipBuilder;
   final ChipsBuilder suggestionBuilder;
@@ -33,6 +38,9 @@ class ChipsSelector<T> extends StatefulWidget {
   final InputDecoration decoration;
   final TextStyle style;
   final TextInputType textInputType;
+  final TextInputAction textInputAction;
+  final FocusNode current;
+  final FocusNode next;
   final bool autofocus;
 
   @override
@@ -40,8 +48,7 @@ class ChipsSelector<T> extends StatefulWidget {
 }
 
 class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
-  TextEditingController currentTextController = TextEditingController();
-  FocusNode editFocus = FocusNode();
+  TextEditingController _controller = TextEditingController();
   GlobalKey editKey = GlobalKey();
   OverlayEntry _overlayEntry;
   final LayerLink _layerLink = LayerLink();
@@ -60,17 +67,21 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   void initState() {
     super.initState();
     _items.addAll(widget.initialValue);
-    editFocus.addListener(() {
-      if (editFocus.hasFocus) {
+    widget.current.addListener(() {
+      if (widget.current.hasFocus) {
         this._overlayEntry = this._createOverlayEntry();
-        Overlay.of(context).insert(this._overlayEntry);
+        if (context != null) {
+          Overlay.of(context).insert(this._overlayEntry);
+        }
       } else {
-        this._overlayEntry.remove();
-        if (widget.parseOnLeaving != null) {
-          List<T> parsedEntries = widget.parseOnLeaving(currentTextController.text);
-          parsedEntries.forEach((element) {
-            selectSuggestion(element);
-          });
+        if (this.context != null) {
+          this._overlayEntry.remove();
+          if (widget.parseOnLeaving != null) {
+            List<T> parsedEntries = widget.parseOnLeaving(_controller.text);
+            parsedEntries.forEach((element) {
+              selectSuggestion(element);
+            });
+          }
         }
       }
     });
@@ -88,10 +99,10 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
         Expanded(
           child: GestureDetector(
             onTap: () {
-              FocusScope.of(context).requestFocus(editFocus);
+              FocusScope.of(context).requestFocus(widget.current);
             },
             child: InputDecorator(
-              decoration: widget.decoration?? InputDecoration(),
+              decoration: widget.decoration ?? InputDecoration(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -132,9 +143,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   Widget _buildInput() {
     return RawKeyboardListener(
       onKey: (RawKeyEvent event) {
-        if (event.isKeyPressed(LogicalKeyboardKey.delete) ||
-            event.isKeyPressed(LogicalKeyboardKey.backspace)) {
-          if (currentTextController.text.length == 0 && _items.length > 0) {
+        if (event.isKeyPressed(LogicalKeyboardKey.delete) || event.isKeyPressed(LogicalKeyboardKey.backspace)) {
+          if (_controller.text.length == 0 && _items.length > 0) {
             setState(() {
               _items.removeLast();
             });
@@ -147,6 +157,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
       child: Container(
         child: EditableText(
           keyboardType: widget.textInputType,
+          textInputAction: widget.textInputAction,
           keyboardAppearance: Brightness.dark,
           key: editKey,
           onChanged: (String newText) async {
@@ -167,10 +178,11 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
             );
           },
           onEditingComplete: () {
-            editFocus.unfocus();
-            if (currentTextController.text.length > 0) {
+            widget.current.unfocus();
+            if (_controller.text.length > 0) {
               //try to take first entry from suggestions
             }
+            FocusScope.of(context).requestFocus(widget.next);
           },
           minLines: 1,
           maxLines: 1,
@@ -179,20 +191,20 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
           style: widget.style ?? Theme.of(context).textTheme.bodyText2,
           cursorColor: Theme.of(context).cursorColor,
           backgroundCursorColor: Theme.of(context).backgroundColor,
-          focusNode: editFocus,
-          controller: currentTextController,
+          focusNode: widget.current,
+          controller: _controller,
         ),
       ),
     );
   }
 
   OverlayEntry _createOverlayEntry() {
-    RenderBox renderBox = context.findRenderObject();
-    var size = renderBox.size;
+    RenderBox renderBox = context?.findRenderObject();
+    var size = renderBox?.size;
 
     return OverlayEntry(
       builder: (context) => Positioned(
-        width: size.width,
+        width: context != null ? size.width : 20.0,
         child: Visibility(
           visible: _suggestions.isNotEmpty,
           child: CompositedTransformFollower(
@@ -210,8 +222,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                     padding: const EdgeInsets.all(8),
                     itemCount: _suggestions.length,
                     itemBuilder: (BuildContext context, int index) {
-                      return widget.suggestionBuilder(
-                          context, this, _suggestions[index]);
+                      return widget.suggestionBuilder(context, this, _suggestions[index]);
                     },
                   ),
                 ),
@@ -238,7 +249,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
     });
     if (exists == null) {
       setState(() {
-        currentTextController.clear();
+        _controller.clear();
         _items.add(data);
         widget.onChanged(_items);
       });
@@ -248,6 +259,6 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   }
 
   void triggerChange() {
-     widget.onChanged(_items);
+    widget.onChanged(_items);
   }
 }
