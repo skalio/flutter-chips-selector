@@ -160,6 +160,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
           textInputAction: widget.textInputAction,
           keyboardAppearance: MediaQuery.of(context).platformBrightness,
           key: editKey,
+          enableSuggestions: false,
+          autocorrect: false,
           onChanged: (String newText) async {
             //wait some time after user has stopped typing
             const duration = Duration(milliseconds: 100);
