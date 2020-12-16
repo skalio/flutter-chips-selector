@@ -158,7 +158,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
         child: EditableText(
           keyboardType: widget.textInputType,
           textInputAction: widget.textInputAction,
-          keyboardAppearance: Brightness.dark,
+          keyboardAppearance: MediaQuery.of(context).platformBrightness,
           key: editKey,
           onChanged: (String newText) async {
             //wait some time after user has stopped typing
