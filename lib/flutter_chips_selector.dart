@@ -21,6 +21,7 @@ class ChipsSelector<T> extends StatefulWidget {
       this.decoration,
       this.style,
       this.autofocus,
+      this.keyboardBrightness = Brightness.light,
       this.textInputType = TextInputType.text,
       this.textInputAction = TextInputAction.done,
       FocusNode currentFocus,
@@ -42,6 +43,7 @@ class ChipsSelector<T> extends StatefulWidget {
   final FocusNode current;
   final FocusNode next;
   final bool autofocus;
+  final Brightness keyboardBrightness;
 
   @override
   State<StatefulWidget> createState() => ChipsSelectorState<T>();
@@ -158,7 +160,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
         child: EditableText(
           keyboardType: widget.textInputType,
           textInputAction: widget.textInputAction,
-          keyboardAppearance: MediaQuery.of(context).platformBrightness,
+          keyboardAppearance: widget.keyboardBrightness,
           key: editKey,
           enableSuggestions: false,
           autocorrect: false,
