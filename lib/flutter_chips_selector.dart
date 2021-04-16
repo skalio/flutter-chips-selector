@@ -59,6 +59,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   List<T> _items = [];
   List<T> _suggestions = [];
 
+  int _selectedIndex = -1;
+
   BoxDecoration defaultDecoration = BoxDecoration(
       border: Border.all(
         color: Colors.grey,
@@ -143,60 +145,94 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   }
 
   Widget _buildInput() {
-    return RawKeyboardListener(
-      onKey: (RawKeyEvent event) {
-        if (event.isKeyPressed(LogicalKeyboardKey.delete) || event.isKeyPressed(LogicalKeyboardKey.backspace)) {
-          if (_controller.text.length == 0 && _items.length > 0) {
+    return FocusableActionDetector(
+      shortcuts: {
+        LogicalKeySet(LogicalKeyboardKey.arrowDown): DirectionalFocusIntent(TraversalDirection.down),
+        LogicalKeySet(LogicalKeyboardKey.arrowUp): DirectionalFocusIntent(TraversalDirection.up),
+        LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent(),
+      },
+      actions: {
+        DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(onInvoke: (intent) {
+          if (intent.direction == TraversalDirection.down) {
+            if (_suggestions.length > 0) {
+              setState(() {
+                _selectedIndex = (_selectedIndex + 1 >= _suggestions.length) ? 0 : _selectedIndex + 1;
+                _overlayEntry.markNeedsBuild();
+              });
+            }
+          } else if (intent.direction == TraversalDirection.up) {
+            if (_suggestions.length > 0) {
+              setState(() {
+                _selectedIndex = (_selectedIndex - 1 < 0) ? _suggestions.length - 1 : _selectedIndex - 1;
+                _overlayEntry.markNeedsBuild();
+              });
+            }
+          }
+          return;
+        }),
+        SelectIntent: CallbackAction<SelectIntent>(onInvoke: (_) {
+          if (_selectedIndex > -1) {
+            selectSuggestion(_suggestions[_selectedIndex]);
             setState(() {
-              _items.removeLast();
+              _selectedIndex = -1;
             });
           }
-        } else if (event.isKeyPressed(LogicalKeyboardKey.arrowDown)) {
-          print("down");
-        }
+          return;
+        }),
       },
-      focusNode: FocusNode(skipTraversal: true),
-      child: Container(
-        child: EditableText(
-          keyboardType: widget.textInputType,
-          textInputAction: widget.textInputAction,
-          keyboardAppearance: widget.keyboardBrightness,
-          key: editKey,
-          enableSuggestions: false,
-          autocorrect: false,
-          onChanged: (String newText) async {
-            //wait some time after user has stopped typing
-            const duration = Duration(milliseconds: 100);
-            if (searchOnStoppedTyping != null) {
-              setState(() => searchOnStoppedTyping.cancel()); // clear timer
+      child: RawKeyboardListener(
+        focusNode: FocusNode(skipTraversal: true),
+        onKey: (RawKeyEvent event) {
+          if (event.isKeyPressed(LogicalKeyboardKey.delete) || event.isKeyPressed(LogicalKeyboardKey.backspace)) {
+            if (_controller.text.length == 0 && _items.length > 0) {
+              setState(() {
+                _items.removeLast();
+              });
             }
-            setState(
-              () => searchOnStoppedTyping = new Timer(duration, () async {
-                if (newText.length > 1) {
-                  _suggestions = await widget.findSuggestions(newText);
-                } else {
-                  _suggestions.clear();
-                }
-                _overlayEntry.markNeedsBuild();
-              }),
-            );
-          },
-          onEditingComplete: () {
-            widget.current.unfocus();
-            if (_controller.text.length > 0) {
-              //try to take first entry from suggestions
-            }
-            FocusScope.of(context).requestFocus(widget.next);
-          },
-          minLines: 1,
-          maxLines: 1,
-          autofocus: widget.autofocus ?? true,
-          forceLine: false,
-          style: widget.style ?? Theme.of(context).textTheme.bodyText2,
-          cursorColor: Theme.of(context).cursorColor,
-          backgroundCursorColor: Theme.of(context).backgroundColor,
-          focusNode: widget.current,
-          controller: _controller,
+          }
+        },
+        child: Container(
+          child: EditableText(
+            keyboardType: widget.textInputType,
+            textInputAction: widget.textInputAction,
+            keyboardAppearance: widget.keyboardBrightness,
+            key: editKey,
+            enableSuggestions: false,
+            autocorrect: false,
+            onChanged: (String newText) async {
+              //wait some time after user has stopped typing
+              const duration = Duration(milliseconds: 100);
+              if (searchOnStoppedTyping != null) {
+                setState(() => searchOnStoppedTyping.cancel()); // clear timer
+              }
+              setState(
+                () => searchOnStoppedTyping = new Timer(duration, () async {
+                  if (newText.length > 1) {
+                    _suggestions = await widget.findSuggestions(newText);
+                  } else {
+                    _suggestions.clear();
+                  }
+                  _overlayEntry.markNeedsBuild();
+                }),
+              );
+            },
+            onEditingComplete: () {
+              widget.current.unfocus();
+              if (_controller.text.length > 0) {
+                //try to take first entry from suggestions
+              }
+              FocusScope.of(context).requestFocus(widget.next);
+            },
+            minLines: 1,
+            maxLines: 1,
+            autofocus: widget.autofocus ?? true,
+            forceLine: false,
+            style: widget.style ?? Theme.of(context).textTheme.bodyText2,
+            cursorColor: Theme.of(context).textSelectionTheme.cursorColor,
+            backgroundCursorColor: Theme.of(context).backgroundColor,
+            focusNode: widget.current,
+            controller: _controller,
+          ),
         ),
       ),
     );
@@ -223,10 +259,13 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                   child: ListView.builder(
                     shrinkWrap: true,
                     addAutomaticKeepAlives: true,
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: _suggestions.length,
                     itemBuilder: (BuildContext context, int index) {
-                      return widget.suggestionBuilder(context, this, _suggestions[index]);
+                      return Container(
+                        color: _selectedIndex == index ? Theme.of(context).hoverColor : Colors.transparent,
+                        child: widget.suggestionBuilder(context, this, _suggestions[index]),
+                      );
                     },
                   ),
                 ),
