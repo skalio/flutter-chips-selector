@@ -205,8 +205,10 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                 () => searchOnStoppedTyping = new Timer(duration, () async {
                   if (newText.length > 1) {
                     _suggestions = await (widget.findSuggestions(newText) as FutureOr<List<T>>);
+                    if (_suggestions.length > 0) _selectedIndex = 0;
                   } else {
                     _suggestions.clear();
+                    _selectedIndex = -1;
                   }
                   _overlayEntry.markNeedsBuild();
                 }),
