@@ -103,26 +103,28 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
             },
             child: InputDecorator(
               decoration: widget.decoration ?? InputDecoration(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Container(
-                    padding: EdgeInsets.all(0),
-                    child: Wrap(
-                      spacing: 2,
-                      runSpacing: 2,
-                      alignment: WrapAlignment.start,
-                      direction: Axis.horizontal,
-                      children: _getWrapWidgets(),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Container(
+                      padding: EdgeInsets.all(0),
+                      child: Wrap(
+                        spacing: 2,
+                        runSpacing: 2,
+                        alignment: WrapAlignment.start,
+                        direction: Axis.horizontal,
+                        children: _getWrapWidgets(),
+                      ),
                     ),
-                  ),
-                  CompositedTransformTarget(
-                    link: this._layerLink,
-                    child: SizedBox(
-                      height: 0,
+                    CompositedTransformTarget(
+                      link: this._layerLink,
+                      child: SizedBox(
+                        height: 0,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
