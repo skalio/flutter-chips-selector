@@ -187,7 +187,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
             }
           }
         },
-        child: Container(
+        child: Padding(
+          padding: EdgeInsets.only(top: _items.length > 0 ? 5 : 0),
           child: EditableText(
             keyboardType: widget.textInputType,
             textInputAction: widget.textInputAction,
