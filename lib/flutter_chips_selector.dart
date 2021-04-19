@@ -219,9 +219,6 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
             },
             onEditingComplete: () {
               widget.current.unfocus();
-              if (_controller.text.length > 0) {
-                //try to take first entry from suggestions
-              }
               FocusScope.of(context).requestFocus(widget.next);
             },
             minLines: 1,
