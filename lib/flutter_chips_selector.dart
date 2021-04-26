@@ -186,6 +186,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
               setState(() {
                 _items.removeLast();
               });
+              widget.onChanged(_items);
             }
           }
         },
