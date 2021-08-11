@@ -3,6 +3,7 @@ library flutter_chips_selector;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 typedef ChipsBuilder<T> = Widget Function(BuildContext context, ChipsSelectorState<T?> state, T? data);
@@ -24,6 +25,8 @@ class ChipsSelector<T> extends StatefulWidget {
       this.keyboardBrightness = Brightness.light,
       this.textInputType = TextInputType.text,
       this.textInputAction = TextInputAction.done,
+      this.underlineColor = Colors.transparent,
+      this.labelColor,
       FocusNode? currentFocus,
       FocusNode? nextFocus})
       : this.current = currentFocus ?? FocusNode(),
@@ -38,6 +41,8 @@ class ChipsSelector<T> extends StatefulWidget {
   final ParsedItems? parseOnLeaving;
   final InputDecoration? decoration;
   final TextStyle? style;
+  final Color underlineColor;
+  final Color? labelColor;
   final TextInputType? textInputType;
   final TextInputAction? textInputAction;
   final FocusNode current;
@@ -56,6 +61,9 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
   late OverlayEntry _overlayEntry;
   final LayerLink _layerLink = LayerLink();
   Timer? searchOnStoppedTyping;
+
+  GlobalKey _endOfChips = GlobalKey(), _endOfTextField = GlobalKey();
+  ValueNotifier<double?> _textInputWidth = ValueNotifier(null);
 
   List<T?> _items = [];
   List<T> _suggestions = [];
@@ -107,13 +115,14 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         Expanded(
-          child: GestureDetector(
-            onTap: () {
-              FocusScope.of(context).requestFocus(widget.current);
-            },
-            child: InputDecorator(
-              decoration: widget.decoration ?? InputDecoration(),
-              child: SingleChildScrollView(
+          child: MouseRegion(
+            cursor: SystemMouseCursors.text,
+            child: GestureDetector(
+              onTap: () {
+                FocusScope.of(context).requestFocus(widget.current);
+              },
+              child: InputDecorator(
+                decoration: widget.decoration?.copyWith(labelStyle: TextStyle(color: widget.labelColor, fontWeight: FontWeight.bold)) ?? InputDecoration(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
@@ -127,18 +136,14 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                         children: _getWrapWidgets(),
                       ),
                     ),
-                    CompositedTransformTarget(
-                      link: this._layerLink,
-                      child: SizedBox(
-                        height: 0,
-                      ),
-                    ),
+                    CompositedTransformTarget(link: this._layerLink),
                   ],
                 ),
               ),
             ),
           ),
         ),
+        SizedBox(key: _endOfTextField, width: 0),
       ],
     );
   }
@@ -148,104 +153,110 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
     _items.forEach((item) {
       wrapWidgets.add(widget.chipBuilder(context, this, item));
     });
+    wrapWidgets.add(SizedBox(key: _endOfChips, width: 0));
+    _updateTextInputWidth();
     wrapWidgets.add(_buildInput());
     return wrapWidgets;
   }
 
   Widget _buildInput() {
-    return FocusableActionDetector(
-      shortcuts: {
-        LogicalKeySet(LogicalKeyboardKey.arrowDown): DirectionalFocusIntent(TraversalDirection.down),
-        LogicalKeySet(LogicalKeyboardKey.arrowUp): DirectionalFocusIntent(TraversalDirection.up),
-        LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent(),
-      },
-      actions: {
-        DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(onInvoke: (intent) {
-          if (intent.direction == TraversalDirection.down) {
-            if (_suggestions.length > 0) {
-              setState(() {
-                _selectedIndex = (_selectedIndex + 1 >= _suggestions.length) ? 0 : _selectedIndex + 1;
-                _overlayEntry.markNeedsBuild();
-              });
-              _scrollDown();
-            }
-          } else if (intent.direction == TraversalDirection.up) {
-            if (_suggestions.length > 0) {
-              setState(() {
-                _selectedIndex = (_selectedIndex - 1 < 0) ? _suggestions.length - 1 : _selectedIndex - 1;
-                _overlayEntry.markNeedsBuild();
-              });
-              _scrollUp();
-            }
-          }
-          return;
-        }),
-        SelectIntent: CallbackAction<SelectIntent>(onInvoke: (_) {
-          if (_selectedIndex > -1) {
-            selectSuggestion(_suggestions[_selectedIndex]);
-            setState(() {
-              _selectedIndex = -1;
-            });
-          }
-          return;
-        }),
-      },
-      child: RawKeyboardListener(
-        focusNode: FocusNode(skipTraversal: true),
-        onKey: (RawKeyEvent event) {
-          if (event.isKeyPressed(LogicalKeyboardKey.delete) || event.isKeyPressed(LogicalKeyboardKey.backspace)) {
-            if (_textController.text.length == 0 && _items.length > 0) {
-              setState(() {
-                _items.removeLast();
-              });
-              widget.onChanged(_items);
-            }
-          }
-        },
-        child: Padding(
-          padding: EdgeInsets.only(top: _items.length > 0 ? 5 : 0),
-          child: EditableText(
-            keyboardType: widget.textInputType,
-            textInputAction: widget.textInputAction,
-            keyboardAppearance: widget.keyboardBrightness,
-            key: editKey,
-            enableSuggestions: false,
-            autocorrect: false,
-            onChanged: (String newText) async {
-              //wait some time after user has stopped typing
-              const duration = Duration(milliseconds: 100);
-              if (searchOnStoppedTyping != null) {
-                setState(() => searchOnStoppedTyping!.cancel()); // clear timer
+    return ValueListenableBuilder(
+      valueListenable: _textInputWidth,
+      builder: (context, _, __) => Container(
+        width: _textInputWidth.value,
+        child: FocusableActionDetector(
+          shortcuts: {
+            LogicalKeySet(LogicalKeyboardKey.arrowDown): DirectionalFocusIntent(TraversalDirection.down),
+            LogicalKeySet(LogicalKeyboardKey.arrowUp): DirectionalFocusIntent(TraversalDirection.up),
+            LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent(),
+          },
+          actions: {
+            DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(onInvoke: (intent) {
+              if (intent.direction == TraversalDirection.down) {
+                if (_suggestions.length > 0) {
+                  setState(() {
+                    _selectedIndex = (_selectedIndex + 1 >= _suggestions.length) ? 0 : _selectedIndex + 1;
+                    _overlayEntry.markNeedsBuild();
+                  });
+                  _scrollDown();
+                }
+              } else if (intent.direction == TraversalDirection.up) {
+                if (_suggestions.length > 0) {
+                  setState(() {
+                    _selectedIndex = (_selectedIndex - 1 < 0) ? _suggestions.length - 1 : _selectedIndex - 1;
+                    _overlayEntry.markNeedsBuild();
+                  });
+                  _scrollUp();
+                }
               }
-              setState(
-                () => searchOnStoppedTyping = new Timer(duration, () async {
-                  if (newText.length > 1) {
-                    var _suggestionsResult = await widget.findSuggestions(newText) as List<T>;
-                    setState(() {
-                      _suggestions = _suggestionsResult;
-                      if (_suggestions.length > 0) _selectedIndex = 0;
-                    });
-                  } else {
-                    _suggestions.clear();
-                    _selectedIndex = -1;
+              return;
+            }),
+            SelectIntent: CallbackAction<SelectIntent>(onInvoke: (_) {
+              if (_selectedIndex > -1) {
+                selectSuggestion(_suggestions[_selectedIndex]);
+                setState(() {
+                  _selectedIndex = -1;
+                });
+              }
+              return;
+            }),
+          },
+          child: RawKeyboardListener(
+            focusNode: FocusNode(skipTraversal: true),
+            onKey: (RawKeyEvent event) {
+              if (event.isKeyPressed(LogicalKeyboardKey.delete) || event.isKeyPressed(LogicalKeyboardKey.backspace)) {
+                if (_textController.text.length == 0 && _items.length > 0) {
+                  setState(() {
+                    _items.removeLast();
+                  });
+                }
+              }
+            },
+            child: Padding(
+              padding: EdgeInsets.only(top: _items.length > 0 ? 5 : 0),
+              child: TextField(
+                keyboardType: widget.textInputType,
+                textInputAction: widget.textInputAction,
+                keyboardAppearance: widget.keyboardBrightness,
+                key: editKey,
+                enableSuggestions: false,
+                autocorrect: false,
+                onChanged: (String newText) async {
+                  //wait some time after user has stopped typing
+                  const duration = Duration(milliseconds: 100);
+                  if (searchOnStoppedTyping != null) {
+                    setState(() => searchOnStoppedTyping!.cancel()); // clear timer
                   }
-                  _overlayEntry.markNeedsBuild();
-                }),
-              );
-            },
-            onEditingComplete: () {
-              widget.current.unfocus();
-              FocusScope.of(context).requestFocus(widget.next);
-            },
-            minLines: 1,
-            maxLines: 1,
-            autofocus: widget.autofocus ?? true,
-            forceLine: false,
-            style: widget.style ?? Theme.of(context).textTheme.bodyText2!,
-            cursorColor: Theme.of(context).textSelectionTheme.cursorColor!,
-            backgroundCursorColor: Theme.of(context).backgroundColor,
-            focusNode: widget.current,
-            controller: _textController,
+                  setState(
+                    () => searchOnStoppedTyping = new Timer(duration, () async {
+                      if (newText.length > 1) {
+                        _suggestions = await (widget.findSuggestions(newText) as FutureOr<List<T>>);
+                        if (_suggestions.length > 0) _selectedIndex = 0;
+                      } else {
+                        _suggestions.clear();
+                        _selectedIndex = -1;
+                      }
+                      _overlayEntry.markNeedsBuild();
+                    }),
+                  );
+                },
+                onEditingComplete: () {
+                  widget.current.unfocus();
+                  FocusScope.of(context).requestFocus(widget.next);
+                },
+                minLines: 1,
+                maxLines: 1,
+                autofocus: widget.autofocus ?? true,
+                style: widget.style ?? Theme.of(context).textTheme.bodyText2!,
+                cursorColor: Theme.of(context).textSelectionTheme.cursorColor!,
+                decoration: InputDecoration(
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(style: BorderStyle.none)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: widget.underlineColor, width: 2, style: BorderStyle.solid)),
+                ),
+                focusNode: widget.current,
+                controller: _textController,
+              ),
+            ),
           ),
         ),
       ),
@@ -341,6 +352,17 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
       }
     } else {
       _overlayScrollController.animateTo(0, duration: _scrollDuration, curve: Curves.easeIn);
+    }
+  }
+
+  void _updateTextInputWidth() {
+    if (_endOfChips.currentContext != null) {
+      SchedulerBinding.instance?.addPostFrameCallback((timeStamp) {
+        double start = (_endOfChips.currentContext?.findRenderObject() as RenderBox).localToGlobal(Offset.zero).dx;
+        double end = (_endOfTextField.currentContext?.findRenderObject() as RenderBox).localToGlobal(Offset.zero).dx;
+        _textInputWidth.value = end - start - 15;
+      });
+      // print(_textInputWidth.value);
     }
   }
 }
