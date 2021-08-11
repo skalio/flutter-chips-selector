@@ -55,15 +55,15 @@ class ChipsSelector<T> extends StatefulWidget {
 }
 
 class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
-  TextEditingController _textController = TextEditingController();
-  ScrollController _overlayScrollController = ScrollController();
-  GlobalKey editKey = GlobalKey();
+  final TextEditingController _textController = TextEditingController();
+  final ScrollController _overlayScrollController = ScrollController();
+  final GlobalKey editKey = GlobalKey();
   late OverlayEntry _overlayEntry;
   final LayerLink _layerLink = LayerLink();
   Timer? searchOnStoppedTyping;
 
-  GlobalKey _endOfChips = GlobalKey(), _endOfTextField = GlobalKey();
-  ValueNotifier<double?> _textInputWidth = ValueNotifier(null);
+  final GlobalKey _endOfChips = GlobalKey(), _endOfTextField = GlobalKey();
+  final ValueNotifier<double?> _textInputWidth = ValueNotifier(null);
 
   List<T?> _items = [];
   List<T> _suggestions = [];
@@ -209,6 +209,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                   setState(() {
                     _items.removeLast();
                   });
+                  widget.onChanged(_items);
                 }
               }
             },
@@ -230,8 +231,11 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                   setState(
                     () => searchOnStoppedTyping = new Timer(duration, () async {
                       if (newText.length > 1) {
-                        _suggestions = await (widget.findSuggestions(newText) as FutureOr<List<T>>);
-                        if (_suggestions.length > 0) _selectedIndex = 0;
+                        var _suggestionsResult = await widget.findSuggestions(newText) as List<T>;
+                        setState(() {
+                          _suggestions = _suggestionsResult;
+                          if (_suggestions.length > 0) _selectedIndex = 0;
+                        });
                       } else {
                         _suggestions.clear();
                         _selectedIndex = -1;
@@ -329,6 +333,15 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
 
   void triggerChange() {
     widget.onChanged(_items);
+  }
+
+  void clearInput() {
+    setState(() {
+      _textController.clear();
+      _items = [];
+      _selectedIndex = -1;
+      _suggestions = [];
+    });
   }
 
   void _scrollUp() {
