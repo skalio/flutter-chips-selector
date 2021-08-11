@@ -50,8 +50,9 @@ class ChipsSelector<T> extends StatefulWidget {
 }
 
 class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
-  final TextEditingController _controller = TextEditingController();
-  final GlobalKey editKey = GlobalKey();
+  TextEditingController _textController = TextEditingController();
+  ScrollController _overlayScrollController = ScrollController();
+  GlobalKey editKey = GlobalKey();
   late OverlayEntry _overlayEntry;
   final LayerLink _layerLink = LayerLink();
   Timer? searchOnStoppedTyping;
@@ -60,6 +61,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
   List<T> _suggestions = [];
 
   int _selectedIndex = -1;
+  Duration _scrollDuration = Duration(milliseconds: 100);
+  double _suggestionItemHeight = 65;
 
   BoxDecoration defaultDecoration = BoxDecoration(
       border: Border.all(
@@ -78,13 +81,20 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
       } else {
         this._overlayEntry.remove();
         if (widget.parseOnLeaving != null) {
-          List<T> parsedEntries = widget.parseOnLeaving!(_controller.text) as List<T>;
+          List<T> parsedEntries = widget.parseOnLeaving!(_textController.text) as List<T>;
           parsedEntries.forEach((element) {
             selectSuggestion(element);
           });
         }
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _overlayScrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -114,7 +124,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                         runSpacing: 2,
                         alignment: WrapAlignment.start,
                         direction: Axis.horizontal,
-                        children: _getWrapWidgets(context),
+                        children: _getWrapWidgets(),
                       ),
                     ),
                     CompositedTransformTarget(
@@ -133,7 +143,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
     );
   }
 
-  List<Widget> _getWrapWidgets(BuildContext context) {
+  List<Widget> _getWrapWidgets() {
     List<Widget> wrapWidgets = [];
     _items.forEach((item) {
       wrapWidgets.add(widget.chipBuilder(context, this, item));
@@ -157,6 +167,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                 _selectedIndex = (_selectedIndex + 1 >= _suggestions.length) ? 0 : _selectedIndex + 1;
                 _overlayEntry.markNeedsBuild();
               });
+              _scrollDown();
             }
           } else if (intent.direction == TraversalDirection.up) {
             if (_suggestions.length > 0) {
@@ -164,6 +175,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                 _selectedIndex = (_selectedIndex - 1 < 0) ? _suggestions.length - 1 : _selectedIndex - 1;
                 _overlayEntry.markNeedsBuild();
               });
+              _scrollUp();
             }
           }
           return;
@@ -182,7 +194,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
         focusNode: FocusNode(skipTraversal: true),
         onKey: (RawKeyEvent event) {
           if (event.isKeyPressed(LogicalKeyboardKey.delete) || event.isKeyPressed(LogicalKeyboardKey.backspace)) {
-            if (_controller.text.length == 0 && _items.length > 0) {
+            if (_textController.text.length == 0 && _items.length > 0) {
               setState(() {
                 _items.removeLast();
               });
@@ -233,7 +245,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
             cursorColor: Theme.of(context).textSelectionTheme.cursorColor!,
             backgroundCursorColor: Theme.of(context).backgroundColor,
             focusNode: widget.current,
-            controller: _controller,
+            controller: _textController,
           ),
         ),
       ),
@@ -259,6 +271,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                   //suggestion list shall be one third of the viewport max
                   maxHeight: MediaQuery.of(context).size.height / 3,
                   child: ListView.builder(
+                    controller: _overlayScrollController,
                     shrinkWrap: true,
                     addAutomaticKeepAlives: true,
                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -294,7 +307,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
     });
     if (exists == null) {
       setState(() {
-        _controller.clear();
+        _textController.clear();
         _items.add(data);
         _suggestions.clear();
       });
@@ -307,12 +320,27 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
     widget.onChanged(_items);
   }
 
-  void clearInput() {
-    setState(() {
-      _controller.clear();
-      _items = [];
-      _selectedIndex = -1;
-      _suggestions = [];
-    });
+  void _scrollUp() {
+    if (_selectedIndex <= 3) {
+      if (_overlayScrollController.offset - _suggestionItemHeight > _overlayScrollController.position.minScrollExtent) {
+        _overlayScrollController.animateTo(_overlayScrollController.offset - 65, duration: _scrollDuration, curve: Curves.easeIn);
+      } else {
+        _overlayScrollController.animateTo(_overlayScrollController.position.minScrollExtent, duration: _scrollDuration, curve: Curves.easeIn);
+      }
+    } else {
+      _overlayScrollController.animateTo(_overlayScrollController.position.maxScrollExtent, duration: _scrollDuration, curve: Curves.easeIn);
+    }
+  }
+
+  void _scrollDown() {
+    if (_selectedIndex >= 3) {
+      if (_overlayScrollController.offset + _suggestionItemHeight < _overlayScrollController.position.maxScrollExtent) {
+        _overlayScrollController.animateTo(_overlayScrollController.offset + _suggestionItemHeight, duration: _scrollDuration, curve: Curves.easeIn);
+      } else {
+        _overlayScrollController.animateTo(_overlayScrollController.position.maxScrollExtent, duration: _scrollDuration, curve: Curves.easeIn);
+      }
+    } else {
+      _overlayScrollController.animateTo(0, duration: _scrollDuration, curve: Curves.easeIn);
+    }
   }
 }
