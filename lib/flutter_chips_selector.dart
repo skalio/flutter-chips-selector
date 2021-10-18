@@ -122,7 +122,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                 FocusScope.of(context).requestFocus(widget.current);
               },
               child: InputDecorator(
-                decoration: widget.decoration?.copyWith(labelStyle: TextStyle(color: widget.labelColor, fontWeight: FontWeight.bold)) ?? InputDecoration(),
+                decoration: widget.decoration?.copyWith(labelStyle: TextStyle(color: widget.labelColor)) ?? InputDecoration(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
