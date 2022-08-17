@@ -417,18 +417,26 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
 
   void _updateTextInputWidth() {
     if (_endOfChips.currentContext != null) {
-      SchedulerBinding.instance?.addPostFrameCallback((timeStamp) {
-        double start =
-            (_endOfChips.currentContext?.findRenderObject() as RenderBox)
+      SchedulerBinding.instance.addPostFrameCallback(
+        (_) {
+          if (mounted) {
+            const minimumAllowedInputTextWidth = 100.0;
+            final double start =
+                (_endOfChips.currentContext?.findRenderObject() as RenderBox)
+                    .localToGlobal(Offset.zero)
+                    .dx;
+            final double end = (_endOfTextField.currentContext
+                    ?.findRenderObject() as RenderBox)
                 .localToGlobal(Offset.zero)
                 .dx;
-        double end =
-            (_endOfTextField.currentContext?.findRenderObject() as RenderBox)
-                .localToGlobal(Offset.zero)
-                .dx;
-        _textInputWidth.value = end - start - 15;
-      });
-      // print(_textInputWidth.value);
+            final double remainingGapWidth = end - start - 15;
+            _textInputWidth.value =
+                remainingGapWidth > minimumAllowedInputTextWidth
+                    ? remainingGapWidth
+                    : double.infinity;
+          }
+        },
+      );
     }
   }
 }
