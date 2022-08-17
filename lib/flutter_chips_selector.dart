@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
-typedef ChipsBuilder<T> = Widget Function(BuildContext context, ChipsSelectorState<T?> state, T? data);
+typedef ChipsBuilder<T> = Widget Function(
+    BuildContext context, ChipsSelectorState<T?> state, T? data);
 typedef ChipsInputSuggestions<T> = FutureOr<List<T>> Function(String query);
 typedef ParsedItems<T> = FutureOr<List<T>> Function(String query);
 
@@ -65,6 +66,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
   final GlobalKey _endOfChips = GlobalKey(), _endOfTextField = GlobalKey();
   final ValueNotifier<double?> _textInputWidth = ValueNotifier(null);
 
+  late VoidCallback _currentFocusNodeListener;
+
   List<T?> _items = [];
   List<T> _suggestions = [];
 
@@ -82,26 +85,29 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
   void initState() {
     super.initState();
     _items.addAll(widget.initialValue);
-    widget.current.addListener(() {
+    _currentFocusNodeListener = () {
       if (widget.current.hasFocus) {
-        this._overlayEntry = this._createOverlayEntry();
-        Overlay.of(context)!.insert(this._overlayEntry);
+        _overlayEntry = _createOverlayEntry();
+        Overlay.of(context)!.insert(_overlayEntry);
       } else {
         this._overlayEntry.remove();
         if (widget.parseOnLeaving != null) {
-          List<T> parsedEntries = widget.parseOnLeaving!(_textController.text) as List<T>;
+          List<T> parsedEntries =
+              widget.parseOnLeaving!(_textController.text) as List<T>;
           parsedEntries.forEach((element) {
             selectSuggestion(element);
           });
         }
       }
-    });
+    };
+    widget.current.addListener(_currentFocusNodeListener);
   }
 
   @override
   void dispose() {
     _textController.dispose();
     _overlayScrollController.dispose();
+    widget.current.removeListener(_currentFocusNodeListener);
     super.dispose();
   }
 
@@ -122,7 +128,9 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                 FocusScope.of(context).requestFocus(widget.current);
               },
               child: InputDecorator(
-                decoration: widget.decoration?.copyWith(labelStyle: TextStyle(color: widget.labelColor)) ?? InputDecoration(),
+                decoration: widget.decoration?.copyWith(
+                        labelStyle: TextStyle(color: widget.labelColor)) ??
+                    InputDecoration(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
@@ -160,32 +168,44 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
   }
 
   Widget _buildInput() {
-    return ValueListenableBuilder(
+    return ValueListenableBuilder<double?>(
       valueListenable: _textInputWidth,
-      builder: (context, _, __) => Container(
-        width: _textInputWidth.value,
+      builder: (context, textInputWidth, _) => Container(
+        width: textInputWidth,
         child: FocusableActionDetector(
           shortcuts: {
-            LogicalKeySet(LogicalKeyboardKey.arrowDown): DirectionalFocusIntent(TraversalDirection.down),
-            LogicalKeySet(LogicalKeyboardKey.arrowUp): DirectionalFocusIntent(TraversalDirection.up),
+            LogicalKeySet(LogicalKeyboardKey.arrowDown):
+                DirectionalFocusIntent(TraversalDirection.down),
+            LogicalKeySet(LogicalKeyboardKey.arrowUp):
+                DirectionalFocusIntent(TraversalDirection.up),
             LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent(),
           },
           actions: {
-            DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(onInvoke: (intent) {
+            DirectionalFocusIntent:
+                CallbackAction<DirectionalFocusIntent>(onInvoke: (intent) {
               if (intent.direction == TraversalDirection.down) {
                 if (_suggestions.length > 0) {
-                  setState(() {
-                    _selectedIndex = (_selectedIndex + 1 >= _suggestions.length) ? 0 : _selectedIndex + 1;
-                    _overlayEntry.markNeedsBuild();
-                  });
+                  setState(
+                    () {
+                      _selectedIndex =
+                          (_selectedIndex + 1 >= _suggestions.length)
+                              ? 0
+                              : _selectedIndex + 1;
+                      _overlayEntry.markNeedsBuild();
+                    },
+                  );
                   _scrollDown();
                 }
               } else if (intent.direction == TraversalDirection.up) {
                 if (_suggestions.length > 0) {
-                  setState(() {
-                    _selectedIndex = (_selectedIndex - 1 < 0) ? _suggestions.length - 1 : _selectedIndex - 1;
-                    _overlayEntry.markNeedsBuild();
-                  });
+                  setState(
+                    () {
+                      _selectedIndex = (_selectedIndex - 1 < 0)
+                          ? _suggestions.length - 1
+                          : _selectedIndex - 1;
+                      _overlayEntry.markNeedsBuild();
+                    },
+                  );
                   _scrollUp();
                 }
               }
@@ -204,7 +224,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
           child: RawKeyboardListener(
             focusNode: FocusNode(skipTraversal: true),
             onKey: (RawKeyEvent event) {
-              if (event.isKeyPressed(LogicalKeyboardKey.delete) || event.isKeyPressed(LogicalKeyboardKey.backspace)) {
+              if (event.isKeyPressed(LogicalKeyboardKey.delete) ||
+                  event.isKeyPressed(LogicalKeyboardKey.backspace)) {
                 if (_textController.text.length == 0 && _items.length > 0) {
                   setState(() {
                     _items.removeLast();
@@ -226,12 +247,14 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                   //wait some time after user has stopped typing
                   const duration = Duration(milliseconds: 100);
                   if (searchOnStoppedTyping != null) {
-                    setState(() => searchOnStoppedTyping!.cancel()); // clear timer
+                    setState(
+                        () => searchOnStoppedTyping!.cancel()); // clear timer
                   }
                   setState(
                     () => searchOnStoppedTyping = new Timer(duration, () async {
                       if (newText.length > 1) {
-                        var _suggestionsResult = await widget.findSuggestions(newText) as List<T>;
+                        var _suggestionsResult =
+                            await widget.findSuggestions(newText) as List<T>;
                         setState(() {
                           _suggestions = _suggestionsResult;
                           if (_suggestions.length > 0) _selectedIndex = 0;
@@ -254,8 +277,13 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                 style: widget.style ?? Theme.of(context).textTheme.bodyText2!,
                 cursorColor: Theme.of(context).textSelectionTheme.cursorColor!,
                 decoration: InputDecoration(
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(style: BorderStyle.none)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: widget.underlineColor, width: 2, style: BorderStyle.solid)),
+                  enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(style: BorderStyle.none)),
+                  focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                          color: widget.underlineColor,
+                          width: 2,
+                          style: BorderStyle.solid)),
                 ),
                 focusNode: widget.current,
                 controller: _textController,
@@ -293,8 +321,11 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                     itemCount: _suggestions.length,
                     itemBuilder: (BuildContext context, int index) {
                       return Container(
-                        color: _selectedIndex == index ? Theme.of(context).hoverColor : Colors.transparent,
-                        child: widget.suggestionBuilder(context, this, _suggestions[index]),
+                        color: _selectedIndex == index
+                            ? Theme.of(context).hoverColor
+                            : Colors.transparent,
+                        child: widget.suggestionBuilder(
+                            context, this, _suggestions[index]),
                       );
                     },
                   ),
@@ -346,33 +377,55 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
 
   void _scrollUp() {
     if (_selectedIndex <= 3) {
-      if (_overlayScrollController.offset - _suggestionItemHeight > _overlayScrollController.position.minScrollExtent) {
-        _overlayScrollController.animateTo(_overlayScrollController.offset - 65, duration: _scrollDuration, curve: Curves.easeIn);
+      if (_overlayScrollController.offset - _suggestionItemHeight >
+          _overlayScrollController.position.minScrollExtent) {
+        _overlayScrollController.animateTo(_overlayScrollController.offset - 65,
+            duration: _scrollDuration, curve: Curves.easeIn);
       } else {
-        _overlayScrollController.animateTo(_overlayScrollController.position.minScrollExtent, duration: _scrollDuration, curve: Curves.easeIn);
+        _overlayScrollController.animateTo(
+            _overlayScrollController.position.minScrollExtent,
+            duration: _scrollDuration,
+            curve: Curves.easeIn);
       }
     } else {
-      _overlayScrollController.animateTo(_overlayScrollController.position.maxScrollExtent, duration: _scrollDuration, curve: Curves.easeIn);
+      _overlayScrollController.animateTo(
+          _overlayScrollController.position.maxScrollExtent,
+          duration: _scrollDuration,
+          curve: Curves.easeIn);
     }
   }
 
   void _scrollDown() {
     if (_selectedIndex >= 3) {
-      if (_overlayScrollController.offset + _suggestionItemHeight < _overlayScrollController.position.maxScrollExtent) {
-        _overlayScrollController.animateTo(_overlayScrollController.offset + _suggestionItemHeight, duration: _scrollDuration, curve: Curves.easeIn);
+      if (_overlayScrollController.offset + _suggestionItemHeight <
+          _overlayScrollController.position.maxScrollExtent) {
+        _overlayScrollController.animateTo(
+            _overlayScrollController.offset + _suggestionItemHeight,
+            duration: _scrollDuration,
+            curve: Curves.easeIn);
       } else {
-        _overlayScrollController.animateTo(_overlayScrollController.position.maxScrollExtent, duration: _scrollDuration, curve: Curves.easeIn);
+        _overlayScrollController.animateTo(
+            _overlayScrollController.position.maxScrollExtent,
+            duration: _scrollDuration,
+            curve: Curves.easeIn);
       }
     } else {
-      _overlayScrollController.animateTo(0, duration: _scrollDuration, curve: Curves.easeIn);
+      _overlayScrollController.animateTo(0,
+          duration: _scrollDuration, curve: Curves.easeIn);
     }
   }
 
   void _updateTextInputWidth() {
     if (_endOfChips.currentContext != null) {
       SchedulerBinding.instance?.addPostFrameCallback((timeStamp) {
-        double start = (_endOfChips.currentContext?.findRenderObject() as RenderBox).localToGlobal(Offset.zero).dx;
-        double end = (_endOfTextField.currentContext?.findRenderObject() as RenderBox).localToGlobal(Offset.zero).dx;
+        double start =
+            (_endOfChips.currentContext?.findRenderObject() as RenderBox)
+                .localToGlobal(Offset.zero)
+                .dx;
+        double end =
+            (_endOfTextField.currentContext?.findRenderObject() as RenderBox)
+                .localToGlobal(Offset.zero)
+                .dx;
         _textInputWidth.value = end - start - 15;
       });
       // print(_textInputWidth.value);
