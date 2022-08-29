@@ -2,6 +2,7 @@ library flutter_chips_selector;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -101,6 +102,15 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
       }
     };
     widget.current.addListener(_currentFocusNodeListener);
+  }
+
+  @override
+  void didUpdateWidget(covariant ChipsSelector<T?> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(oldWidget.initialValue, widget.initialValue)) {
+      _items.replaceRange(0, _items.length, widget.initialValue);
+      _textController.clear();
+    }
   }
 
   @override
