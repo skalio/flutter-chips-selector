@@ -151,21 +151,23 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                 decoration: widget.decoration?.copyWith(
                         labelStyle: TextStyle(color: widget.labelColor)) ??
                     InputDecoration(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Container(
-                      padding: EdgeInsets.all(0),
-                      child: Wrap(
-                        spacing: 2,
-                        runSpacing: 2,
-                        alignment: WrapAlignment.start,
-                        direction: Axis.horizontal,
-                        children: _getWrapWidgets(),
+                child: FocusTraversalGroup(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Container(
+                        padding: EdgeInsets.all(0),
+                        child: Wrap(
+                          spacing: 2,
+                          runSpacing: 2,
+                          alignment: WrapAlignment.start,
+                          direction: Axis.horizontal,
+                          children: _getWrapWidgets(),
+                        ),
                       ),
-                    ),
-                    CompositedTransformTarget(link: this._layerLink),
-                  ],
+                      CompositedTransformTarget(link: this._layerLink),
+                    ],
+                  ),
                 ),
               ),
             ),
