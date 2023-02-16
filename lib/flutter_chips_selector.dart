@@ -69,6 +69,16 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
 
   late VoidCallback _currentFocusNodeListener;
 
+  final FocusNode _focusableActionDetectorFocusNode = FocusNode(
+    debugLabel: "#chip selector: focusableActionDetector focus node",
+    skipTraversal: true,
+  );
+
+  final FocusNode _rawKeyboardListenerFocusNode = FocusNode(
+    debugLabel: "#chip selector: rawKeyboardListener focus node",
+    skipTraversal: true,
+  );
+
   List<T?> _items = [];
   List<T> _suggestions = [];
 
@@ -183,6 +193,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
       builder: (context, textInputWidth, _) => Container(
         width: textInputWidth,
         child: FocusableActionDetector(
+          focusNode: _focusableActionDetectorFocusNode,
           shortcuts: {
             LogicalKeySet(LogicalKeyboardKey.arrowDown):
                 DirectionalFocusIntent(TraversalDirection.down),
@@ -191,36 +202,37 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
             LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent(),
           },
           actions: {
-            DirectionalFocusIntent:
-                CallbackAction<DirectionalFocusIntent>(onInvoke: (intent) {
-              if (intent.direction == TraversalDirection.down) {
-                if (_suggestions.length > 0) {
-                  setState(
-                    () {
-                      _selectedIndex =
-                          (_selectedIndex + 1 >= _suggestions.length)
-                              ? 0
-                              : _selectedIndex + 1;
-                      _overlayEntry.markNeedsBuild();
-                    },
-                  );
-                  _scrollDown();
+            DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(
+              onInvoke: (intent) {
+                if (intent.direction == TraversalDirection.down) {
+                  if (_suggestions.length > 0) {
+                    setState(
+                      () {
+                        _selectedIndex =
+                            (_selectedIndex + 1 >= _suggestions.length)
+                                ? 0
+                                : _selectedIndex + 1;
+                        _overlayEntry.markNeedsBuild();
+                      },
+                    );
+                    _scrollDown();
+                  }
+                } else if (intent.direction == TraversalDirection.up) {
+                  if (_suggestions.length > 0) {
+                    setState(
+                      () {
+                        _selectedIndex = (_selectedIndex - 1 < 0)
+                            ? _suggestions.length - 1
+                            : _selectedIndex - 1;
+                        _overlayEntry.markNeedsBuild();
+                      },
+                    );
+                    _scrollUp();
+                  }
                 }
-              } else if (intent.direction == TraversalDirection.up) {
-                if (_suggestions.length > 0) {
-                  setState(
-                    () {
-                      _selectedIndex = (_selectedIndex - 1 < 0)
-                          ? _suggestions.length - 1
-                          : _selectedIndex - 1;
-                      _overlayEntry.markNeedsBuild();
-                    },
-                  );
-                  _scrollUp();
-                }
-              }
-              return;
-            }),
+                return;
+              },
+            ),
             SelectIntent: CallbackAction<SelectIntent>(onInvoke: (_) {
               if (_selectedIndex > -1) {
                 selectSuggestion(_suggestions[_selectedIndex]);
@@ -232,7 +244,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
             }),
           },
           child: RawKeyboardListener(
-            focusNode: FocusNode(skipTraversal: true),
+            focusNode: _rawKeyboardListenerFocusNode,
             onKey: (RawKeyEvent event) {
               if (event.isKeyPressed(LogicalKeyboardKey.delete) ||
                   event.isKeyPressed(LogicalKeyboardKey.backspace)) {
