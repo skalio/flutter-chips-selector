@@ -127,6 +127,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
   void dispose() {
     _textController.dispose();
     _overlayScrollController.dispose();
+    _focusableActionDetectorFocusNode.dispose();
+    _rawKeyboardListenerFocusNode.dispose();
     widget.current.removeListener(_currentFocusNodeListener);
     super.dispose();
   }
