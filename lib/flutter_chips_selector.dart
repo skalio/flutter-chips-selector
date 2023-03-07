@@ -279,7 +279,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                   setState(
                     () => searchOnStoppedTyping = new Timer(duration, () async {
                       if (newText.length > 1) {
-                        var _suggestionsResult = await widget.findSuggestions(newText) as List<T>;
+                        List<T> _suggestionsResult = (await widget.findSuggestions(newText)).cast();
                         setState(() {
                           _suggestions = _suggestionsResult;
                           if (_suggestions.length > 0) _selectedIndex = 0;
