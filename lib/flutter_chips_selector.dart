@@ -8,7 +8,10 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 typedef ChipsBuilder<T> = Widget Function(
-    BuildContext context, ChipsSelectorState<T?> state, T? data);
+  BuildContext context,
+  ChipsSelectorState<T?> state,
+  T? data,
+);
 typedef ChipsInputSuggestions<T> = FutureOr<List<T>> Function(String query);
 typedef ParsedItems<T> = FutureOr<List<T>> Function(String query);
 
@@ -35,12 +38,12 @@ class ChipsSelector<T> extends StatefulWidget {
         this.next = nextFocus ?? FocusNode(),
         super(key: key);
 
-  final ChipsBuilder chipBuilder;
-  final ChipsBuilder suggestionBuilder;
+  final ChipsBuilder<T> chipBuilder;
+  final ChipsBuilder<T> suggestionBuilder;
   final ChipsInputSuggestions findSuggestions;
   final List<T> initialValue;
   final ValueChanged<List<T>> onChanged;
-  final ParsedItems? parseOnLeaving;
+  final ParsedItems<T>? parseOnLeaving;
   final InputDecoration? decoration;
   final TextStyle? style;
   final Color underlineColor;
