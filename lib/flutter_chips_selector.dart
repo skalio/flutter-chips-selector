@@ -69,7 +69,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _overlayScrollController = ScrollController();
   final GlobalKey editKey = GlobalKey();
-  late OverlayEntry _overlayEntry;
+  @visibleForTesting
+  late OverlayEntry overlayEntry;
   final LayerLink _layerLink = LayerLink();
   Timer? searchOnStoppedTyping;
 
@@ -107,10 +108,10 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
     _items.addAll(widget.initialValue);
     _textFieldFocusNodeListener = () {
       if (widget.textFieldFocusNode.hasFocus) {
-        _overlayEntry = _createOverlayEntry();
-        Overlay.of(context).insert(_overlayEntry);
+        overlayEntry = _createOverlayEntry();
+        Overlay.of(context).insert(overlayEntry);
       } else {
-        this._overlayEntry.remove();
+        this.overlayEntry.remove();
         if (widget.parseOnLeaving != null) {
           List<T> parsedEntries = widget.parseOnLeaving!(_textController.text) as List<T>;
           parsedEntries.forEach((element) {
@@ -218,7 +219,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                     setState(
                       () {
                         _selectedIndex = (_selectedIndex + 1 >= _suggestions.length) ? 0 : _selectedIndex + 1;
-                        _overlayEntry.markNeedsBuild();
+                        overlayEntry.markNeedsBuild();
                       },
                     );
                     _scrollDown();
@@ -228,7 +229,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                     setState(
                       () {
                         _selectedIndex = (_selectedIndex - 1 < 0) ? _suggestions.length - 1 : _selectedIndex - 1;
-                        _overlayEntry.markNeedsBuild();
+                        overlayEntry.markNeedsBuild();
                       },
                     );
                     _scrollUp();
@@ -288,7 +289,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                         _suggestions.clear();
                         _selectedIndex = -1;
                       }
-                      _overlayEntry.markNeedsBuild();
+                      overlayEntry.markNeedsBuild();
                     }),
                   );
                 },
@@ -374,7 +375,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
         _suggestions.clear();
       });
       widget.onChanged(_items);
-      _overlayEntry.markNeedsBuild();
+      overlayEntry.markNeedsBuild();
     }
   }
 
