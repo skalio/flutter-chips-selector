@@ -299,8 +299,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                 minLines: 1,
                 maxLines: 1,
                 autofocus: widget.autofocus ?? true,
-                style: widget.style ?? Theme.of(context).textTheme.bodyText2!,
-                cursorColor: Theme.of(context).textSelectionTheme.cursorColor!,
+                style: widget.style ?? Theme.of(context).textTheme.bodyText2,
+                cursorColor: Theme.of(context).textSelectionTheme.cursorColor,
                 decoration: InputDecoration(
                   enabledBorder: UnderlineInputBorder(borderSide: BorderSide(style: BorderStyle.none)),
                   focusedBorder: UnderlineInputBorder(
