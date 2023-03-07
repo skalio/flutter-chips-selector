@@ -65,7 +65,7 @@ class ChipsSelector<T> extends StatefulWidget {
   State<StatefulWidget> createState() => ChipsSelectorState<T>();
 }
 
-class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
+class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _overlayScrollController = ScrollController();
   final GlobalKey editKey = GlobalKey();
@@ -89,7 +89,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
     skipTraversal: true,
   );
 
-  List<T?> _items = [];
+  List<T> _items = [];
   List<T> _suggestions = [];
 
   int _selectedIndex = -1;
@@ -124,7 +124,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
   }
 
   @override
-  void didUpdateWidget(covariant ChipsSelector<T?> oldWidget) {
+  @override
+  void didUpdateWidget(covariant ChipsSelector<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(oldWidget.initialValue, widget.initialValue)) {
       _items.replaceRange(0, _items.length, widget.initialValue);
@@ -369,12 +370,9 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
   }
 
   void selectSuggestion(T data) {
-    var exists = _items.firstWhere((m) {
-      return m == data;
-    }, orElse: () {
-      return null;
-    });
-    if (exists == null) {
+    bool exists = _items.any((m) => m == data);
+    // TODO ? maybe we should not show suggestions that dont exist
+    if (!exists) {
       setState(() {
         _textController.clear();
         _items.add(data);
