@@ -34,8 +34,8 @@ class ChipsSelector<T> extends StatefulWidget {
     this.labelColor,
     FocusNode? currentFocus,
     FocusNode? nextFocus,
-  })  : this.textFieldFocusNode = currentFocus ?? FocusNode(),
-        this.next = nextFocus ?? FocusNode(),
+  })  : this.textFieldFocusNode = currentFocus ?? FocusNode(), // TODO need to dispose
+        this.nextFocusNode = nextFocus ?? FocusNode(), // TODO need to dispose
         super(key: key);
 
   final ChipsBuilder<T> chipBuilder;
@@ -51,11 +51,15 @@ class ChipsSelector<T> extends StatefulWidget {
   final TextInputType? textInputType;
   final TextInputAction? textInputAction;
   final FocusNode textFieldFocusNode;
-  @Deprecated("Use textFieldFocusNode instead")
-  FocusNode get current => textFieldFocusNode;
-  final FocusNode next;
+  final FocusNode nextFocusNode;
   final bool? autofocus;
   final Brightness keyboardBrightness;
+
+  @Deprecated("Use textFieldFocusNode instead")
+  FocusNode get current => textFieldFocusNode;
+
+  @Deprecated("Use nextFocusNode instead")
+  FocusNode get next => nextFocusNode;
 
   @override
   State<StatefulWidget> createState() => ChipsSelectorState<T>();
@@ -290,7 +294,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
                 },
                 onEditingComplete: () {
                   widget.textFieldFocusNode.unfocus();
-                  FocusScope.of(context).requestFocus(widget.next);
+                  FocusScope.of(context).requestFocus(widget.nextFocusNode);
                 },
                 minLines: 1,
                 maxLines: 1,
