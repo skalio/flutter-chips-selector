@@ -207,37 +207,40 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
         child: FocusableActionDetector(
           focusNode: _focusableActionDetectorFocusNode,
           shortcuts: {
-            LogicalKeySet(LogicalKeyboardKey.arrowDown): DirectionalFocusIntent(TraversalDirection.down),
-            LogicalKeySet(LogicalKeyboardKey.arrowUp): DirectionalFocusIntent(TraversalDirection.up),
-            LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent(),
+            // For some reason `DirectionalFocusIntent(TraversalDirection.down)` does not work
+            // TODO investigate
+            LogicalKeySet(LogicalKeyboardKey.arrowDown): _MyTraversalDownFocusIntent(),
+            LogicalKeySet(LogicalKeyboardKey.arrowUp): _MyTraversalUpFocusIntent(),
+            LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent()
           },
           actions: {
-            DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(
-              onInvoke: (intent) {
-                if (intent.direction == TraversalDirection.down) {
-                  if (_suggestions.length > 0) {
-                    setState(
-                      () {
-                        _selectedIndex = (_selectedIndex + 1 >= _suggestions.length) ? 0 : _selectedIndex + 1;
-                        overlayEntry.markNeedsBuild();
-                      },
-                    );
-                    _scrollDown();
+            for (final intent in [_MyTraversalDownFocusIntent, _MyTraversalUpFocusIntent])
+              intent: CallbackAction<DirectionalFocusIntent>(
+                onInvoke: (intent) {
+                  if (intent.direction == TraversalDirection.down) {
+                    if (_suggestions.length > 0) {
+                      setState(
+                        () {
+                          _selectedIndex = (_selectedIndex + 1 >= _suggestions.length) ? 0 : _selectedIndex + 1;
+                          overlayEntry.markNeedsBuild();
+                        },
+                      );
+                      _scrollDown();
+                    }
+                  } else if (intent.direction == TraversalDirection.up) {
+                    if (_suggestions.length > 0) {
+                      setState(
+                        () {
+                          _selectedIndex = (_selectedIndex - 1 < 0) ? _suggestions.length - 1 : _selectedIndex - 1;
+                          overlayEntry.markNeedsBuild();
+                        },
+                      );
+                      _scrollUp();
+                    }
                   }
-                } else if (intent.direction == TraversalDirection.up) {
-                  if (_suggestions.length > 0) {
-                    setState(
-                      () {
-                        _selectedIndex = (_selectedIndex - 1 < 0) ? _suggestions.length - 1 : _selectedIndex - 1;
-                        overlayEntry.markNeedsBuild();
-                      },
-                    );
-                    _scrollUp();
-                  }
-                }
-                return;
-              },
-            ),
+                  return;
+                },
+              ),
             SelectIntent: CallbackAction<SelectIntent>(onInvoke: (_) {
               if (_selectedIndex > -1) {
                 selectSuggestion(_suggestions[_selectedIndex]);
@@ -251,6 +254,9 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
           child: RawKeyboardListener(
             focusNode: _rawKeyboardListenerFocusNode,
             onKey: (RawKeyEvent event) {
+              if (event.isKeyPressed(LogicalKeyboardKey.arrowUp) || event.isKeyPressed(LogicalKeyboardKey.arrowDown)) {
+                print("lololo");
+              }
               if (event.isKeyPressed(LogicalKeyboardKey.delete) || event.isKeyPressed(LogicalKeyboardKey.backspace)) {
                 if (_textController.text.length == 0 && _items.length > 0) {
                   setState(() {
@@ -439,4 +445,12 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T?>> {
       );
     }
   }
+}
+
+class _MyTraversalDownFocusIntent extends DirectionalFocusIntent {
+  const _MyTraversalDownFocusIntent() : super(TraversalDirection.down);
+}
+
+class _MyTraversalUpFocusIntent extends DirectionalFocusIntent {
+  _MyTraversalUpFocusIntent() : super(TraversalDirection.up);
 }
