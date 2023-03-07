@@ -16,25 +16,25 @@ typedef ChipsInputSuggestions<T> = FutureOr<List<T>> Function(String query);
 typedef ParsedItems<T> = FutureOr<List<T>> Function(String query);
 
 class ChipsSelector<T> extends StatefulWidget {
-  ChipsSelector(
-      {Key? key,
-      this.initialValue = const [],
-      required this.chipBuilder,
-      required this.suggestionBuilder,
-      required this.findSuggestions,
-      required this.onChanged,
-      this.parseOnLeaving,
-      this.decoration,
-      this.style,
-      this.autofocus,
-      this.keyboardBrightness = Brightness.light,
-      this.textInputType = TextInputType.text,
-      this.textInputAction = TextInputAction.done,
-      this.underlineColor = Colors.transparent,
-      this.labelColor,
-      FocusNode? currentFocus,
-      FocusNode? nextFocus})
-      : this.current = currentFocus ?? FocusNode(),
+  ChipsSelector({
+    Key? key,
+    this.initialValue = const [],
+    required this.chipBuilder,
+    required this.suggestionBuilder,
+    required this.findSuggestions,
+    required this.onChanged,
+    this.parseOnLeaving,
+    this.decoration,
+    this.style,
+    this.autofocus,
+    this.keyboardBrightness = Brightness.light,
+    this.textInputType = TextInputType.text,
+    this.textInputAction = TextInputAction.done,
+    this.underlineColor = Colors.transparent,
+    this.labelColor,
+    FocusNode? currentFocus,
+    FocusNode? nextFocus,
+  })  : this.current = currentFocus ?? FocusNode(),
         this.next = nextFocus ?? FocusNode(),
         super(key: key);
 
