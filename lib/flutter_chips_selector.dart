@@ -210,6 +210,9 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
             LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent()
           },
           actions: {
+            SelectIntent: CallbackAction<SelectIntent>(
+              onInvoke: (_) => _selectViaEnter(),
+            ),
             _TraversalDownFocusIntent: CallbackAction<DirectionalFocusIntent>(
               onInvoke: (intent) {
                 assert(intent.direction == TraversalDirection.down);
@@ -240,22 +243,10 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                 return;
               },
             ),
-            SelectIntent: CallbackAction<SelectIntent>(onInvoke: (_) {
-              if (_selectedIndex > -1) {
-                selectSuggestion(_suggestions[_selectedIndex]);
-                setState(() {
-                  _selectedIndex = -1;
-                });
-              }
-              return;
-            }),
           },
           child: RawKeyboardListener(
             focusNode: _rawKeyboardListenerFocusNode,
             onKey: (RawKeyEvent event) {
-              if (event.isKeyPressed(LogicalKeyboardKey.arrowUp) || event.isKeyPressed(LogicalKeyboardKey.arrowDown)) {
-                print("lololo");
-              }
               if (event.isKeyPressed(LogicalKeyboardKey.delete) || event.isKeyPressed(LogicalKeyboardKey.backspace)) {
                 if (_textController.text.length == 0 && _items.length > 0) {
                   setState(() {
@@ -279,6 +270,10 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                 onTapOutside: (event) {
                   // do nothing, especially not the default behaviour
                   // we handle the unfocus in our overlay with a TapRegion
+                },
+                onSubmitted: (value) {
+                  _selectViaEnter();
+                  widget.textFieldFocusNode.requestFocus();
                 },
                 onChanged: (String newText) async {
                   //wait some time after user has stopped typing
@@ -324,6 +319,16 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
     );
   }
 
+  void _selectViaEnter() {
+    if (_selectedIndex > -1) {
+      selectSuggestion(_suggestions[_selectedIndex]);
+      setState(() {
+        _selectedIndex = -1;
+      });
+    }
+    return;
+  }
+
   @visibleForTesting
   bool get isSuggestionOverlayVisible => _suggestions.isNotEmpty;
 
@@ -334,19 +339,22 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
     return OverlayEntry(
       builder: (context) => Positioned(
         width: size!.width,
-        child: Visibility(
-          visible: isSuggestionOverlayVisible,
-          child: CompositedTransformFollower(
-            link: this._layerLink,
-            showWhenUnlinked: false,
-            child: FocusScope(
-              child: Material(
-                elevation: 4.0,
-                child: TapRegion(
-                  //behavior: HitTestBehavior.translucent,
-                  onTapOutside: (event) {
-                    FocusScope.of(context).unfocus();
-                  },
+        child: CompositedTransformFollower(
+          link: this._layerLink,
+          showWhenUnlinked: false,
+          child: FocusScope(
+            child: Material(
+              elevation: 4.0,
+              child: TapRegion(
+                behavior: HitTestBehavior.opaque,
+                onTapOutside: (event) {
+                  FocusScope.of(context).unfocus();
+                },
+                // Visibility is down here because we still want to use the tapRegion of the overlay
+                // if we introduce another tap region outside the overlay for unfocusing the textField
+                // we get the same issues as if we used the default onTapOutside of TextField
+                child: Visibility(
+                  visible: isSuggestionOverlayVisible,
                   child: LimitedBox(
                     //suggestion list shall be one third of the viewport max
                     maxHeight: MediaQuery.of(context).size.height / 3,
