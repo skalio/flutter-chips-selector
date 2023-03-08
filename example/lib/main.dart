@@ -33,16 +33,22 @@ class MyWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        const Text(
+            "Type to show suggestion Overlay\nChoose with Arrow-Up and Arrow-Down\nSelect with Enter\nRemove with Backspace\nClick Chip to remove\n\nEnter to complete and goto next focus (if no suggestion overlay open)"),
+        const SizedBox(height: 40),
         ChipsSelector<String>(
           nextFocus: nextFocus,
           underlineColor: Colors.black,
-          chipBuilder: (context, state, data) => Container(
-            decoration: BoxDecoration(
-              color: Colors.blue,
-              border: Border.all(color: Colors.white),
-              borderRadius: const BorderRadius.all(Radius.circular(4.0)),
+          chipBuilder: (context, state, data) => InkWell(
+            onTap: () => state.deleteChip(data),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.blue.withAlpha(50),
+                border: Border.all(color: Colors.white),
+                borderRadius: const BorderRadius.all(Radius.circular(4.0)),
+              ),
+              child: Text(data ?? "empty"),
             ),
-            child: Text(data ?? "empty"),
           ),
           labelColor: Colors.grey,
           decoration: const InputDecoration(
@@ -78,6 +84,7 @@ class MyWidget extends StatelessWidget {
             // use the updated list of chips here
           },
         ),
+        const SizedBox(height: 40),
         FloatingActionButton(
           onPressed: () {},
           focusNode: nextFocus,
