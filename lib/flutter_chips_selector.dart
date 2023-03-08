@@ -118,10 +118,13 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
 
   void _textFieldFocusListener() {
     if (widget.textFieldFocusNode.hasFocus) {
+      if (suggestionOverlayEntry != null) return;
       suggestionOverlayEntry = _createOverlayEntry();
       Overlay.of(context).insert(suggestionOverlayEntry!);
     } else {
       suggestionOverlayEntry?.remove();
+      suggestionOverlayEntry?.dispose();
+      suggestionOverlayEntry = null;
       if (widget.parseOnLeaving != null) {
         List<T> parsedEntries = widget.parseOnLeaving!(_textController.text) as List<T>;
         parsedEntries.forEach((element) {
@@ -147,6 +150,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
     _focusableActionDetectorFocusNode.dispose();
     _rawKeyboardListenerFocusNode.dispose();
     widget.textFieldFocusNode.removeListener(_textFieldFocusListener);
+    suggestionOverlayEntry?.remove();
+    suggestionOverlayEntry?.dispose();
     super.dispose();
   }
 
