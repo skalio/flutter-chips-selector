@@ -34,7 +34,7 @@ class MyWidget extends StatelessWidget {
     return Column(
       children: [
         const Text(
-            "Type to show suggestion Overlay\nChoose with Arrow-Up and Arrow-Down\nSelect with Enter\nRemove with Backspace\nClick Chip to remove\n\nEnter to complete and goto next focus (if no suggestion overlay open)"),
+            "Type to show suggestion Overlay\nChoose with Arrow-Up and Arrow-Down or with mouse\nSelect with Enter\nRemove with Backspace\nClick Chip to remove\n\nEnter to complete and go to next focus (if no suggestion overlay open)"),
         const SizedBox(height: 40),
         ChipsSelector<String>(
           nextFocus: nextFocus,
