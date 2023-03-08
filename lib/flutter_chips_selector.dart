@@ -32,11 +32,9 @@ class ChipsSelector<T> extends StatefulWidget {
     this.textInputAction = TextInputAction.done,
     this.underlineColor = Colors.transparent,
     this.labelColor,
-    FocusNode? currentFocus,
-    FocusNode? nextFocus,
-  })  : this.textFieldFocusNode = currentFocus ?? FocusNode(), // TODO need to dispose
-        this.nextFocusNode = nextFocus ?? FocusNode(), // TODO need to dispose
-        super(key: key);
+    this.currentFocus,
+    this.nextFocus,
+  }) : super(key: key);
 
   final ChipsBuilder<T> chipBuilder;
   final ChipsBuilder<T> suggestionBuilder;
@@ -55,22 +53,55 @@ class ChipsSelector<T> extends StatefulWidget {
   final Color? labelColor;
   final TextInputType? textInputType;
   final TextInputAction? textInputAction;
-  final FocusNode textFieldFocusNode;
-  final FocusNode nextFocusNode;
+
   final bool? autofocus;
   final Brightness keyboardBrightness;
 
-  @Deprecated("Use textFieldFocusNode instead")
-  FocusNode get current => textFieldFocusNode;
-
-  @Deprecated("Use nextFocusNode instead")
-  FocusNode get next => nextFocusNode;
+  final FocusNode? currentFocus;
+  final FocusNode? nextFocus;
 
   @override
   State<StatefulWidget> createState() => ChipsSelectorState<T>();
 }
 
 class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
+  /// Focus nodes either owned by [this] or borrowed from [widget.currentFocus] / [widget.nextFocus]
+  late FocusNode _textFieldFocusNode;
+  late FocusNode _nextFocusNode;
+
+  void _setupFocusNodes() {
+    _textFieldFocusNode = widget.currentFocus ?? FocusNode();
+    _textFieldFocusNode.addListener(_textFieldFocusListener);
+    _nextFocusNode = widget.nextFocus ?? FocusNode();
+  }
+
+  void _disposeFocusNodes() {
+    _textFieldFocusNode.removeListener(_textFieldFocusListener);
+    if (widget.currentFocus == null) {
+      _textFieldFocusNode.dispose();
+    }
+    if (widget.nextFocus == null) {
+      _nextFocusNode.dispose();
+    }
+  }
+
+  void _updateFocusNodes(ChipsSelector oldWidget) {
+    if (oldWidget.currentFocus != widget.currentFocus) {
+      _textFieldFocusNode.removeListener(_textFieldFocusListener);
+      if (oldWidget.currentFocus == null) {
+        _textFieldFocusNode.dispose();
+      }
+      _textFieldFocusNode = widget.currentFocus ?? FocusNode();
+      _textFieldFocusNode.addListener(_textFieldFocusListener);
+    }
+    if (oldWidget.nextFocus != widget.nextFocus) {
+      if (oldWidget.nextFocus == null) {
+        _nextFocusNode.dispose();
+      }
+      _nextFocusNode = widget.nextFocus ?? FocusNode();
+    }
+  }
+
   final TextEditingController _textController = TextEditingController();
   final ScrollController _overlayScrollController = ScrollController();
   final GlobalKey editKey = GlobalKey();
@@ -113,11 +144,11 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   void initState() {
     super.initState();
     _items.addAll(widget.initialValue);
-    widget.textFieldFocusNode.addListener(_textFieldFocusListener);
+    _setupFocusNodes();
   }
 
   void _textFieldFocusListener() {
-    if (widget.textFieldFocusNode.hasFocus) {
+    if (_textFieldFocusNode.hasFocus) {
       if (suggestionOverlayEntry != null) return;
       suggestionOverlayEntry = _createOverlayEntry();
       Overlay.of(context).insert(suggestionOverlayEntry!);
@@ -141,6 +172,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
       _items = [...widget.initialValue];
       _textController.clear();
     }
+    _updateFocusNodes(oldWidget);
   }
 
   @override
@@ -149,7 +181,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
     _overlayScrollController.dispose();
     _focusableActionDetectorFocusNode.dispose();
     _rawKeyboardListenerFocusNode.dispose();
-    widget.textFieldFocusNode.removeListener(_textFieldFocusListener);
+    _disposeFocusNodes();
     suggestionOverlayEntry?.remove();
     suggestionOverlayEntry?.dispose();
     super.dispose();
@@ -273,7 +305,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
           child: Padding(
             padding: EdgeInsets.only(top: _items.length > 0 ? 5 : 0),
             child: TextField(
-              focusNode: widget.textFieldFocusNode,
+              focusNode: _textFieldFocusNode,
               controller: _textController,
               keyboardType: widget.textInputType,
               textInputAction: widget.textInputAction,
@@ -334,7 +366,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
         _selectedIndex = -1;
       });
     } else {
-      widget.nextFocusNode.requestFocus();
+      _nextFocusNode.requestFocus();
     }
   }
 
