@@ -214,11 +214,24 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
           shortcuts: {
             LogicalKeySet(LogicalKeyboardKey.arrowDown): _TraversalDownFocusIntent(),
             LogicalKeySet(LogicalKeyboardKey.arrowUp): _TraversalUpFocusIntent(),
-            LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent()
+            LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent(),
+            LogicalKeySet(LogicalKeyboardKey.delete): _RemoveLastIntent(),
+            LogicalKeySet(LogicalKeyboardKey.backspace): _RemoveLastIntent(),
           },
           actions: {
+            if (_textController.text.length == 0 && _items.length > 0)
+              _RemoveLastIntent: CallbackAction<_RemoveLastIntent>(
+                onInvoke: (_) {
+                  setState(() {
+                    _items.removeLast();
+                  });
+                  widget.onChanged(_items);
+
+                  return;
+                },
+              ),
             SelectIntent: CallbackAction<SelectIntent>(
-              onInvoke: (_) => _selectViaEnter(),
+              onInvoke: (_) => _onEnterSelectOrMoveNextFocus(),
             ),
             _TraversalDownFocusIntent: CallbackAction<DirectionalFocusIntent>(
               onInvoke: (intent) {
@@ -252,74 +265,54 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
               },
             ),
           },
-          child: RawKeyboardListener(
-            focusNode: _rawKeyboardListenerFocusNode,
-            onKey: (RawKeyEvent event) {
-              if (event.isKeyPressed(LogicalKeyboardKey.delete) || event.isKeyPressed(LogicalKeyboardKey.backspace)) {
-                if (_textController.text.length == 0 && _items.length > 0) {
-                  setState(() {
-                    _items.removeLast();
-                  });
-                  widget.onChanged(_items);
+          child: Padding(
+            padding: EdgeInsets.only(top: _items.length > 0 ? 5 : 0),
+            child: TextField(
+              focusNode: widget.textFieldFocusNode,
+              controller: _textController,
+              keyboardType: widget.textInputType,
+              textInputAction: widget.textInputAction,
+              keyboardAppearance: widget.keyboardBrightness,
+              key: editKey,
+              enableSuggestions: false,
+              autocorrect: false,
+              onTapOutside: (_) {
+                // do nothing, especially not the default behaviour
+                // we handle the unfocus in our overlay with a TapRegion
+              },
+              onChanged: (String newText) async {
+                print(_rawKeyboardListenerFocusNode.hasFocus);
+                //wait some time after user has stopped typing
+                const duration = Duration(milliseconds: 100);
+                if (searchOnStoppedTyping != null) {
+                  setState(() => searchOnStoppedTyping!.cancel()); // clear timer
                 }
-              }
-            },
-            child: Padding(
-              padding: EdgeInsets.only(top: _items.length > 0 ? 5 : 0),
-              child: TextField(
-                focusNode: widget.textFieldFocusNode,
-                controller: _textController,
-                keyboardType: widget.textInputType,
-                textInputAction: widget.textInputAction,
-                keyboardAppearance: widget.keyboardBrightness,
-                key: editKey,
-                enableSuggestions: false,
-                autocorrect: false,
-                onTapOutside: (event) {
-                  // do nothing, especially not the default behaviour
-                  // we handle the unfocus in our overlay with a TapRegion
-                },
-                onSubmitted: (value) {
-                  _selectViaEnter();
-                  widget.textFieldFocusNode.requestFocus();
-                },
-                onChanged: (String newText) async {
-                  //wait some time after user has stopped typing
-                  const duration = Duration(milliseconds: 100);
-                  if (searchOnStoppedTyping != null) {
-                    setState(() => searchOnStoppedTyping!.cancel()); // clear timer
-                  }
-                  setState(
-                    () => searchOnStoppedTyping = new Timer(duration, () async {
-                      if (newText.length > 1) {
-                        List<T> _suggestionsResult = (await widget.findSuggestions(newText)).cast();
-                        setState(() {
-                          _suggestionsWithoutItems =
-                              _suggestionsResult.where((element) => !_items.contains(element)).toList();
-                          if (_suggestionsWithoutItems.length > 0) _selectedIndex = 0;
-                        });
-                      } else {
-                        _suggestionsWithoutItems.clear();
-                        _selectedIndex = -1;
-                      }
-                      suggestionOverlayEntry?.markNeedsBuild();
-                    }),
-                  );
-                },
-                onEditingComplete: () {
-                  widget.textFieldFocusNode.unfocus();
-                  FocusScope.of(context).requestFocus(widget.nextFocusNode);
-                },
-                minLines: 1,
-                maxLines: 1,
-                autofocus: widget.autofocus ?? true,
-                style: widget.style ?? Theme.of(context).textTheme.bodyText2,
-                cursorColor: Theme.of(context).textSelectionTheme.cursorColor,
-                decoration: InputDecoration(
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(style: BorderStyle.none)),
-                  focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: widget.underlineColor, width: 2, style: BorderStyle.solid)),
-                ),
+                setState(
+                  () => searchOnStoppedTyping = new Timer(duration, () async {
+                    if (newText.length > 1) {
+                      List<T> _suggestionsResult = (await widget.findSuggestions(newText)).cast();
+                      setState(() {
+                        _suggestionsWithoutItems =
+                            _suggestionsResult.where((element) => !_items.contains(element)).toList();
+                        if (_suggestionsWithoutItems.length > 0) _selectedIndex = 0;
+                      });
+                    } else {
+                      _suggestionsWithoutItems.clear();
+                      _selectedIndex = -1;
+                    }
+                    suggestionOverlayEntry?.markNeedsBuild();
+                  }),
+                );
+              },
+              minLines: 1,
+              maxLines: 1,
+              autofocus: widget.autofocus ?? true,
+              style: widget.style ?? Theme.of(context).textTheme.bodyText2,
+              cursorColor: Theme.of(context).textSelectionTheme.cursorColor,
+              decoration: InputDecoration(
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(style: BorderStyle.none)),
+                focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: widget.underlineColor, width: 2, style: BorderStyle.solid)),
               ),
             ),
           ),
@@ -328,14 +321,15 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
     );
   }
 
-  void _selectViaEnter() {
+  void _onEnterSelectOrMoveNextFocus() {
     if (_selectedIndex > -1) {
       selectSuggestion(_suggestionsWithoutItems[_selectedIndex]);
       setState(() {
         _selectedIndex = -1;
       });
+    } else {
+      widget.nextFocusNode.requestFocus();
     }
-    return;
   }
 
   bool get _overlayIsVisible => _suggestionsWithoutItems.isNotEmpty;
@@ -399,9 +393,6 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
 
   void selectSuggestion(T data) {
     bool exists = _items.any((m) => m == data);
-    // TODO ? maybe we should not show suggestions that dont exist
-    //  since this behaviour here is hardcoded anyways
-    //  then we would not state.isSelected(data) and return null in suggestionBuilder
     if (!exists) {
       setState(() {
         _textController.clear();
@@ -481,4 +472,8 @@ class _TraversalDownFocusIntent extends DirectionalFocusIntent {
 
 class _TraversalUpFocusIntent extends DirectionalFocusIntent {
   _TraversalUpFocusIntent() : super(TraversalDirection.up);
+}
+
+class _RemoveLastIntent extends Intent {
+  const _RemoveLastIntent();
 }
