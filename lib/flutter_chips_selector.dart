@@ -347,6 +347,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
             link: this._layerLink,
             showWhenUnlinked: false,
             child: FocusScope(
+              debugLabel: "Suggestion Overlay Focus Scope",
               child: Material(
                 elevation: 4.0,
                 child: TapRegion(
