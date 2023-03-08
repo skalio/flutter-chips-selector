@@ -39,16 +39,9 @@ class MyWidget extends StatelessWidget {
         ChipsSelector<String>(
           nextFocus: nextFocus,
           underlineColor: Colors.black,
-          chipBuilder: (context, state, data) => InkWell(
-            onTap: () => state.deleteChip(data),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.blue.withAlpha(50),
-                border: Border.all(color: Colors.white),
-                borderRadius: const BorderRadius.all(Radius.circular(4.0)),
-              ),
-              child: Text(data),
-            ),
+          chipBuilder: (context, state, data) => Chip(
+            onDeleted: () => state.deleteChip(data),
+            label: Text(data),
           ),
           labelColor: Colors.grey,
           decoration: const InputDecoration(
