@@ -9,8 +9,8 @@ import 'package:flutter/services.dart';
 
 typedef ChipsBuilder<T> = Widget Function(
   BuildContext context,
-  ChipsSelectorState<T?> state,
-  T? data,
+  ChipsSelectorState<T> state,
+  T data,
 );
 typedef ChipsInputSuggestions<T> = FutureOr<List<T>> Function(String query);
 typedef ParsedItems<T> = FutureOr<List<T>> Function(String query);

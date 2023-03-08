@@ -47,7 +47,7 @@ class MyWidget extends StatelessWidget {
                 border: Border.all(color: Colors.white),
                 borderRadius: const BorderRadius.all(Radius.circular(4.0)),
               ),
-              child: Text(data ?? "empty"),
+              child: Text(data),
             ),
           ),
           labelColor: Colors.grey,
@@ -68,7 +68,7 @@ class MyWidget extends StatelessWidget {
                   border: Border.all(color: Colors.white),
                   borderRadius: const BorderRadius.all(Radius.circular(4.0)),
                 ),
-                child: Text(data ?? "empty"),
+                child: Text(data),
               ),
             );
           },
