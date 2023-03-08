@@ -74,7 +74,7 @@ class MyWidget extends StatelessWidget {
             "Chip Option 6",
           ],
           onChanged: (v) {
-            // use the updated list of chips here
+            // use this to sync your local state with the ChipsSelector's one
           },
         ),
         const SizedBox(height: 40),
