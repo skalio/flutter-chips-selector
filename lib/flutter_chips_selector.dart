@@ -215,12 +215,12 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
             LogicalKeySet(LogicalKeyboardKey.arrowDown): _SuggestionsTraverseDownIntent(),
             LogicalKeySet(LogicalKeyboardKey.arrowUp): _SuggestionsTraverseUpIntent(),
             LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent(),
-            LogicalKeySet(LogicalKeyboardKey.delete): _RemoveLastIntent(),
-            LogicalKeySet(LogicalKeyboardKey.backspace): _RemoveLastIntent(),
+            LogicalKeySet(LogicalKeyboardKey.delete): _DeleteLastChipIntent(),
+            LogicalKeySet(LogicalKeyboardKey.backspace): _DeleteLastChipIntent(),
           },
           actions: {
             if (_textController.text.length == 0 && _items.length > 0)
-              _RemoveLastIntent: CallbackAction<_RemoveLastIntent>(
+              _DeleteLastChipIntent: CallbackAction<_DeleteLastChipIntent>(
                 onInvoke: (_) {
                   setState(() {
                     _items.removeLast();
@@ -476,6 +476,6 @@ class _SuggestionsTraverseUpIntent extends DirectionalFocusIntent {
   _SuggestionsTraverseUpIntent() : super(TraversalDirection.up);
 }
 
-class _RemoveLastIntent extends Intent {
-  const _RemoveLastIntent();
+class _DeleteLastChipIntent extends Intent {
+  const _DeleteLastChipIntent();
 }
