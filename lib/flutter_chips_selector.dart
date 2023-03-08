@@ -280,6 +280,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                 // do nothing, especially not the default behaviour
                 // we handle the unfocus in our overlay with a TapRegion
               },
+              onSubmitted: (_) {},
+              onEditingComplete: () {},
               onChanged: (String newText) async {
                 print(_rawKeyboardListenerFocusNode.hasFocus);
                 //wait some time after user has stopped typing
