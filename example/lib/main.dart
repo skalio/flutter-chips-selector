@@ -27,51 +27,62 @@ class _MyApp extends StatelessWidget {
 class MyWidget extends StatelessWidget {
   const MyWidget({Key? key}) : super(key: key);
 
+  static final nextFocus = FocusNode();
+
   @override
   Widget build(BuildContext context) {
-    return ChipsSelector<String>(
-      underlineColor: Colors.black,
-      chipBuilder: (context, state, data) => Container(
-        decoration: BoxDecoration(
-          color: Colors.blue,
-          border: Border.all(color: Colors.white),
-          borderRadius: const BorderRadius.all(Radius.circular(4.0)),
-        ),
-        child: Text(data ?? "empty"),
-      ),
-      labelColor: Colors.grey,
-      decoration: const InputDecoration(
-        filled: true,
-        fillColor: Colors.grey,
-        focusColor: Colors.red,
-        hoverColor: Colors.black26,
-      ),
-      autofocus: true,
-      suggestionBuilder: (context, state, data) {
-        return ListTile(
-          onTap: () {
-            state.selectSuggestion(data);
-          },
-          title: Container(
+    return Column(
+      children: [
+        ChipsSelector<String>(
+          nextFocus: nextFocus,
+          underlineColor: Colors.black,
+          chipBuilder: (context, state, data) => Container(
             decoration: BoxDecoration(
+              color: Colors.blue,
               border: Border.all(color: Colors.white),
               borderRadius: const BorderRadius.all(Radius.circular(4.0)),
             ),
             child: Text(data ?? "empty"),
           ),
-        );
-      },
-      findSuggestions: (query) => [
-        "Chip Option 1",
-        "Chip Option 2",
-        "Chip Option 3",
-        "Chip Option 4",
-        "Chip Option 5",
-        "Chip Option 6",
+          labelColor: Colors.grey,
+          decoration: const InputDecoration(
+            filled: true,
+            fillColor: Colors.grey,
+            focusColor: Colors.red,
+            hoverColor: Colors.black26,
+          ),
+          autofocus: true,
+          suggestionBuilder: (context, state, data) {
+            return ListTile(
+              onTap: () {
+                state.selectSuggestion(data);
+              },
+              title: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white),
+                  borderRadius: const BorderRadius.all(Radius.circular(4.0)),
+                ),
+                child: Text(data ?? "empty"),
+              ),
+            );
+          },
+          findSuggestions: (query) => [
+            "Chip Option 1",
+            "Chip Option 2",
+            "Chip Option 3",
+            "Chip Option 4",
+            "Chip Option 5",
+            "Chip Option 6",
+          ],
+          onChanged: (v) {
+            // use the updated list of chips here
+          },
+        ),
+        FloatingActionButton(
+          onPressed: () {},
+          focusNode: nextFocus,
+        ),
       ],
-      onChanged: (v) {
-        // use the updated list of chips here
-      },
     );
   }
 }
