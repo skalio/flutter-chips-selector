@@ -212,8 +212,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
         child: FocusableActionDetector(
           focusNode: _focusableActionDetectorFocusNode,
           shortcuts: {
-            LogicalKeySet(LogicalKeyboardKey.arrowDown): _TraversalDownFocusIntent(),
-            LogicalKeySet(LogicalKeyboardKey.arrowUp): _TraversalUpFocusIntent(),
+            LogicalKeySet(LogicalKeyboardKey.arrowDown): _SuggestionsTraverseDownIntent(),
+            LogicalKeySet(LogicalKeyboardKey.arrowUp): _SuggestionsTraverseUpIntent(),
             LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent(),
             LogicalKeySet(LogicalKeyboardKey.delete): _RemoveLastIntent(),
             LogicalKeySet(LogicalKeyboardKey.backspace): _RemoveLastIntent(),
@@ -233,7 +233,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
             SelectIntent: CallbackAction<SelectIntent>(
               onInvoke: (_) => _onEnterSelectOrMoveNextFocus(),
             ),
-            _TraversalDownFocusIntent: CallbackAction<DirectionalFocusIntent>(
+            _SuggestionsTraverseDownIntent: CallbackAction<DirectionalFocusIntent>(
               onInvoke: (intent) {
                 assert(intent.direction == TraversalDirection.down);
                 if (_suggestionsWithoutItems.length > 0) {
@@ -248,7 +248,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                 return;
               },
             ),
-            _TraversalUpFocusIntent: CallbackAction<DirectionalFocusIntent>(
+            _SuggestionsTraverseUpIntent: CallbackAction<DirectionalFocusIntent>(
               onInvoke: (intent) {
                 assert(intent.direction == TraversalDirection.up);
                 if (_suggestionsWithoutItems.length > 0) {
@@ -468,12 +468,12 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   }
 }
 
-class _TraversalDownFocusIntent extends DirectionalFocusIntent {
-  const _TraversalDownFocusIntent() : super(TraversalDirection.down);
+class _SuggestionsTraverseDownIntent extends DirectionalFocusIntent {
+  const _SuggestionsTraverseDownIntent() : super(TraversalDirection.down);
 }
 
-class _TraversalUpFocusIntent extends DirectionalFocusIntent {
-  _TraversalUpFocusIntent() : super(TraversalDirection.up);
+class _SuggestionsTraverseUpIntent extends DirectionalFocusIntent {
+  _SuggestionsTraverseUpIntent() : super(TraversalDirection.up);
 }
 
 class _RemoveLastIntent extends Intent {
