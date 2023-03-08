@@ -283,7 +283,6 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
               onSubmitted: (_) {},
               onEditingComplete: () {},
               onChanged: (String newText) async {
-                print(_rawKeyboardListenerFocusNode.hasFocus);
                 //wait some time after user has stopped typing
                 const duration = Duration(milliseconds: 100);
                 if (searchOnStoppedTyping != null) {
