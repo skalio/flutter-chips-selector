@@ -129,9 +129,6 @@ void main() {
       expect(onTapCounter, 0);
       expect(chips, isEmpty);
 
-      /// Check that the overlay is still visible
-      expect(chipState.isSuggestionOverlayVisible, isTrue);
-
       /// Press the suggestion to trigger its callback
       Offset suggestionWidgetCenter = tester.getCenter(suggestionWidget);
       final TestGesture gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
@@ -146,7 +143,6 @@ void main() {
 
       /// Check that the overlay is no longer visible
       expect(find.byKey(suggestionItemKey), findsNothing);
-      expect(chipState.isSuggestionOverlayVisible, isFalse);
     });
   });
 }

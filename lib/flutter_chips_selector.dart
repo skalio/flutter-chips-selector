@@ -41,8 +41,13 @@ class ChipsSelector<T> extends StatefulWidget {
   final ChipsBuilder<T> chipBuilder;
   final ChipsBuilder<T> suggestionBuilder;
   final ChipsInputSuggestions findSuggestions;
+
+  // TODO we should replace this with set since we enforce uniqueness in selectSuggestion anyways
   final List<T> initialValue;
+
+  // TODO we should rename this to onChangeChips or something like that
   final ValueChanged<List<T>> onChanged;
+
   final ParsedItems<T>? parseOnLeaving;
   final InputDecoration? decoration;
   final TextStyle? style;
@@ -89,6 +94,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
 
   List<T> _items = [];
   List<T> _suggestions = [];
+  List<T> get _suggestionsWithoutItems => _suggestions.where((element) => !_items.contains(element)).toList();
 
   int _selectedIndex = -1;
   Duration _scrollDuration = Duration(milliseconds: 100);
@@ -126,7 +132,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   void didUpdateWidget(covariant ChipsSelector<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(oldWidget.initialValue, widget.initialValue)) {
-      _items.replaceRange(0, _items.length, widget.initialValue);
+      _items = [...widget.initialValue];
       _textController.clear();
     }
   }
@@ -329,55 +335,56 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
     return;
   }
 
-  @visibleForTesting
-  bool get isSuggestionOverlayVisible => _suggestions.isNotEmpty;
-
   OverlayEntry _createOverlayEntry() {
     RenderBox? renderBox = context.findRenderObject() as RenderBox?;
     var size = renderBox?.size;
 
     return OverlayEntry(
-      builder: (context) => Positioned(
-        width: size!.width,
-        child: CompositedTransformFollower(
-          link: this._layerLink,
-          showWhenUnlinked: false,
-          child: FocusScope(
-            child: Material(
-              elevation: 4.0,
-              child: TapRegion(
-                behavior: HitTestBehavior.opaque,
-                onTapOutside: (event) {
-                  FocusScope.of(context).unfocus();
-                },
-                // Visibility is down here because we still want to use the tapRegion of the overlay
-                // if we introduce another tap region outside the overlay for unfocusing the textField
-                // we get the same issues as if we used the default onTapOutside of TextField
-                child: Visibility(
-                  visible: isSuggestionOverlayVisible,
-                  child: LimitedBox(
-                    //suggestion list shall be one third of the viewport max
-                    maxHeight: MediaQuery.of(context).size.height / 3,
-                    child: ListView.builder(
-                      controller: _overlayScrollController,
-                      shrinkWrap: true,
-                      addAutomaticKeepAlives: true,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: _suggestions.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        return Container(
-                          color: _selectedIndex == index ? Theme.of(context).hoverColor : Colors.transparent,
-                          child: widget.suggestionBuilder(context, this, _suggestions[index]),
-                        );
-                      },
+      builder: (context) {
+        final suggestions = _suggestionsWithoutItems;
+
+        return Positioned(
+          width: size!.width,
+          child: CompositedTransformFollower(
+            link: this._layerLink,
+            showWhenUnlinked: false,
+            child: FocusScope(
+              child: Material(
+                elevation: 4.0,
+                child: TapRegion(
+                  behavior: HitTestBehavior.opaque,
+                  onTapOutside: (event) {
+                    FocusScope.of(context).unfocus();
+                  },
+                  // Visibility is down here because we still want to use the tapRegion of the overlay
+                  // if we introduce another tap region outside the overlay for unfocusing the textField
+                  // we get the same issues as if we used the default onTapOutside of TextField
+                  child: Visibility(
+                    visible: suggestions.isNotEmpty,
+                    child: LimitedBox(
+                      //suggestion list shall be one third of the viewport max
+                      maxHeight: MediaQuery.of(context).size.height / 3,
+                      child: ListView.builder(
+                        controller: _overlayScrollController,
+                        shrinkWrap: true,
+                        addAutomaticKeepAlives: true,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: suggestions.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return Container(
+                            color: _selectedIndex == index ? Theme.of(context).hoverColor : Colors.transparent,
+                            child: widget.suggestionBuilder(context, this, suggestions[index]),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
