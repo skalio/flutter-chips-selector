@@ -405,12 +405,11 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                         addAutomaticKeepAlives: true,
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         itemCount: _suggestionsWithoutItems.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          return Container(
-                            color: _selectedIndex == index ? Theme.of(context).hoverColor : Colors.transparent,
-                            child: widget.suggestionBuilder(context, this, _suggestionsWithoutItems[index]),
-                          );
-                        },
+                        itemBuilder: (BuildContext context, int index) => widget.suggestionBuilder(
+                          context,
+                          this,
+                          _suggestionsWithoutItems[index],
+                        ),
                       ),
                     ),
                   ),
