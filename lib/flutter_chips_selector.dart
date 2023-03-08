@@ -70,14 +70,12 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   final ScrollController _overlayScrollController = ScrollController();
   final GlobalKey editKey = GlobalKey();
   @visibleForTesting
-  late OverlayEntry overlayEntry;
+  OverlayEntry? suggestionOverlayEntry;
   final LayerLink _layerLink = LayerLink();
   Timer? searchOnStoppedTyping;
 
   final GlobalKey _endOfChips = GlobalKey(), _endOfTextField = GlobalKey();
   final ValueNotifier<double?> _textInputWidth = ValueNotifier(null);
-
-  late VoidCallback _textFieldFocusNodeListener;
 
   final FocusNode _focusableActionDetectorFocusNode = FocusNode(
     debugLabel: "#chip selector: focusableActionDetector focus node",
@@ -106,24 +104,24 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   void initState() {
     super.initState();
     _items.addAll(widget.initialValue);
-    _textFieldFocusNodeListener = () {
-      if (widget.textFieldFocusNode.hasFocus) {
-        overlayEntry = _createOverlayEntry();
-        Overlay.of(context).insert(overlayEntry);
-      } else {
-        this.overlayEntry.remove();
-        if (widget.parseOnLeaving != null) {
-          List<T> parsedEntries = widget.parseOnLeaving!(_textController.text) as List<T>;
-          parsedEntries.forEach((element) {
-            selectSuggestion(element);
-          });
-        }
-      }
-    };
-    widget.textFieldFocusNode.addListener(_textFieldFocusNodeListener);
+    widget.textFieldFocusNode.addListener(_textFieldFocusListener);
   }
 
-  @override
+  void _textFieldFocusListener() {
+    if (widget.textFieldFocusNode.hasFocus) {
+      suggestionOverlayEntry = _createOverlayEntry();
+      Overlay.of(context).insert(suggestionOverlayEntry!);
+    } else {
+      suggestionOverlayEntry?.remove();
+      if (widget.parseOnLeaving != null) {
+        List<T> parsedEntries = widget.parseOnLeaving!(_textController.text) as List<T>;
+        parsedEntries.forEach((element) {
+          selectSuggestion(element);
+        });
+      }
+    }
+  }
+
   @override
   void didUpdateWidget(covariant ChipsSelector<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -139,7 +137,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
     _overlayScrollController.dispose();
     _focusableActionDetectorFocusNode.dispose();
     _rawKeyboardListenerFocusNode.dispose();
-    widget.textFieldFocusNode.removeListener(_textFieldFocusNodeListener);
+    widget.textFieldFocusNode.removeListener(_textFieldFocusListener);
     super.dispose();
   }
 
@@ -155,30 +153,27 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
         Expanded(
           child: MouseRegion(
             cursor: SystemMouseCursors.text,
-            child: GestureDetector(
-              onTap: () {
-                FocusScope.of(context).requestFocus(widget.textFieldFocusNode);
-              },
-              child: InputDecorator(
-                decoration:
-                    widget.decoration?.copyWith(labelStyle: TextStyle(color: widget.labelColor)) ?? InputDecoration(),
-                child: FocusTraversalGroup(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Container(
-                        padding: EdgeInsets.all(0),
-                        child: Wrap(
-                          spacing: 2,
-                          runSpacing: 2,
-                          alignment: WrapAlignment.start,
-                          direction: Axis.horizontal,
-                          children: _getWrapWidgets(),
-                        ),
+            child: InputDecorator(
+              decoration: widget.decoration?.copyWith(
+                    labelStyle: TextStyle(color: widget.labelColor),
+                  ) ??
+                  InputDecoration(),
+              child: FocusTraversalGroup(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Container(
+                      padding: EdgeInsets.all(0),
+                      child: Wrap(
+                        spacing: 2,
+                        runSpacing: 2,
+                        alignment: WrapAlignment.start,
+                        direction: Axis.horizontal,
+                        children: _getWrapWidgets(),
                       ),
-                      CompositedTransformTarget(link: this._layerLink),
-                    ],
-                  ),
+                    ),
+                    CompositedTransformTarget(link: this._layerLink),
+                  ],
                 ),
               ),
             ),
@@ -210,38 +205,41 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
           shortcuts: {
             // For some reason `DirectionalFocusIntent(TraversalDirection.down)` does not work
             // TODO investigate
-            LogicalKeySet(LogicalKeyboardKey.arrowDown): _MyTraversalDownFocusIntent(),
-            LogicalKeySet(LogicalKeyboardKey.arrowUp): _MyTraversalUpFocusIntent(),
+            LogicalKeySet(LogicalKeyboardKey.arrowDown): _TraversalDownFocusIntent(),
+            LogicalKeySet(LogicalKeyboardKey.arrowUp): _TraversalUpFocusIntent(),
             LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent()
           },
           actions: {
-            for (final intent in [_MyTraversalDownFocusIntent, _MyTraversalUpFocusIntent])
-              intent: CallbackAction<DirectionalFocusIntent>(
-                onInvoke: (intent) {
-                  if (intent.direction == TraversalDirection.down) {
-                    if (_suggestions.length > 0) {
-                      setState(
-                        () {
-                          _selectedIndex = (_selectedIndex + 1 >= _suggestions.length) ? 0 : _selectedIndex + 1;
-                          overlayEntry.markNeedsBuild();
-                        },
-                      );
-                      _scrollDown();
-                    }
-                  } else if (intent.direction == TraversalDirection.up) {
-                    if (_suggestions.length > 0) {
-                      setState(
-                        () {
-                          _selectedIndex = (_selectedIndex - 1 < 0) ? _suggestions.length - 1 : _selectedIndex - 1;
-                          overlayEntry.markNeedsBuild();
-                        },
-                      );
-                      _scrollUp();
-                    }
-                  }
-                  return;
-                },
-              ),
+            _TraversalDownFocusIntent: CallbackAction<DirectionalFocusIntent>(
+              onInvoke: (intent) {
+                assert(intent.direction == TraversalDirection.down);
+                if (_suggestions.length > 0) {
+                  setState(
+                    () {
+                      _selectedIndex = (_selectedIndex + 1 >= _suggestions.length) ? 0 : _selectedIndex + 1;
+                      suggestionOverlayEntry?.markNeedsBuild();
+                    },
+                  );
+                  _scrollDown();
+                }
+                return;
+              },
+            ),
+            _TraversalUpFocusIntent: CallbackAction<DirectionalFocusIntent>(
+              onInvoke: (intent) {
+                assert(intent.direction == TraversalDirection.up);
+                if (_suggestions.length > 0) {
+                  setState(
+                    () {
+                      _selectedIndex = (_selectedIndex - 1 < 0) ? _suggestions.length - 1 : _selectedIndex - 1;
+                      suggestionOverlayEntry?.markNeedsBuild();
+                    },
+                  );
+                  _scrollUp();
+                }
+                return;
+              },
+            ),
             SelectIntent: CallbackAction<SelectIntent>(onInvoke: (_) {
               if (_selectedIndex > -1) {
                 selectSuggestion(_suggestions[_selectedIndex]);
@@ -278,6 +276,10 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                 key: editKey,
                 enableSuggestions: false,
                 autocorrect: false,
+                onTapOutside: (event) {
+                  // do nothing, especially not the default behaviour
+                  // we handle the unfocus in our overlay with a TapRegion
+                },
                 onChanged: (String newText) async {
                   //wait some time after user has stopped typing
                   const duration = Duration(milliseconds: 100);
@@ -296,7 +298,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                         _suggestions.clear();
                         _selectedIndex = -1;
                       }
-                      overlayEntry.markNeedsBuild();
+                      suggestionOverlayEntry?.markNeedsBuild();
                     }),
                   );
                 },
@@ -322,6 +324,9 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
     );
   }
 
+  @visibleForTesting
+  bool get isSuggestionOverlayVisible => _suggestions.isNotEmpty;
+
   OverlayEntry _createOverlayEntry() {
     RenderBox? renderBox = context.findRenderObject() as RenderBox?;
     var size = renderBox?.size;
@@ -330,28 +335,34 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
       builder: (context) => Positioned(
         width: size!.width,
         child: Visibility(
-          visible: _suggestions.isNotEmpty,
+          visible: isSuggestionOverlayVisible,
           child: CompositedTransformFollower(
             link: this._layerLink,
             showWhenUnlinked: false,
             child: FocusScope(
               child: Material(
                 elevation: 4.0,
-                child: LimitedBox(
-                  //suggestion list shall be one third of the viewport max
-                  maxHeight: MediaQuery.of(context).size.height / 3,
-                  child: ListView.builder(
-                    controller: _overlayScrollController,
-                    shrinkWrap: true,
-                    addAutomaticKeepAlives: true,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: _suggestions.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Container(
-                        color: _selectedIndex == index ? Theme.of(context).hoverColor : Colors.transparent,
-                        child: widget.suggestionBuilder(context, this, _suggestions[index]),
-                      );
-                    },
+                child: TapRegion(
+                  //behavior: HitTestBehavior.translucent,
+                  onTapOutside: (event) {
+                    FocusScope.of(context).unfocus();
+                  },
+                  child: LimitedBox(
+                    //suggestion list shall be one third of the viewport max
+                    maxHeight: MediaQuery.of(context).size.height / 3,
+                    child: ListView.builder(
+                      controller: _overlayScrollController,
+                      shrinkWrap: true,
+                      addAutomaticKeepAlives: true,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: _suggestions.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        return Container(
+                          color: _selectedIndex == index ? Theme.of(context).hoverColor : Colors.transparent,
+                          child: widget.suggestionBuilder(context, this, _suggestions[index]),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -372,6 +383,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   void selectSuggestion(T data) {
     bool exists = _items.any((m) => m == data);
     // TODO ? maybe we should not show suggestions that dont exist
+    //  since this behaviour here is hardcoded anyways
+    //  then we would not state.isSelected(data) and return null in suggestionBuilder
     if (!exists) {
       setState(() {
         _textController.clear();
@@ -379,7 +392,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
         _suggestions.clear();
       });
       widget.onChanged(_items);
-      overlayEntry.markNeedsBuild();
+      suggestionOverlayEntry?.markNeedsBuild();
     }
   }
 
@@ -445,10 +458,10 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   }
 }
 
-class _MyTraversalDownFocusIntent extends DirectionalFocusIntent {
-  const _MyTraversalDownFocusIntent() : super(TraversalDirection.down);
+class _TraversalDownFocusIntent extends DirectionalFocusIntent {
+  const _TraversalDownFocusIntent() : super(TraversalDirection.down);
 }
 
-class _MyTraversalUpFocusIntent extends DirectionalFocusIntent {
-  _MyTraversalUpFocusIntent() : super(TraversalDirection.up);
+class _TraversalUpFocusIntent extends DirectionalFocusIntent {
+  _TraversalUpFocusIntent() : super(TraversalDirection.up);
 }

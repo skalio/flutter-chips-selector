@@ -71,20 +71,21 @@ void main() {
       expect(suggestionWidget, findsOneWidget);
 
       /// Check that the overlay is visible
-      expect(chipState.overlayEntry.mounted, isTrue);
+      expect(chipState.suggestionOverlayEntry?.mounted ?? false, isTrue);
 
       /// Remove focus
       otherFocus.requestFocus();
       await tester.pumpAndSettle();
 
       /// Check that the overlay is no longer visible
-      expect(chipState.overlayEntry.mounted, isFalse);
+      expect(chipState.suggestionOverlayEntry?.mounted ?? false, isFalse);
     });
 
     testWidgets("Suggestion Builder onTap callbacks are executed", (tester) async {
       int onTapCounter = 0;
-      final GlobalKey buttonKey = GlobalKey();
-      final GlobalKey<ChipsSelectorState> chipStateKey = GlobalKey();
+      List<String> chips = [];
+      final GlobalKey suggestionItemKey = GlobalKey(debugLabel: "suggestion");
+      final GlobalKey<ChipsSelectorState> chipStateKey = GlobalKey(debugLabel: "chip state");
 
       await tester.pumpWidget(
         _withRequiredParents(
@@ -92,9 +93,10 @@ void main() {
             key: chipStateKey,
             chipBuilder: (context, state, data) => Container(color: Colors.blue, width: 10, height: 10),
             suggestionBuilder: (context, state, data) => GestureDetector(
-              key: buttonKey,
+              key: suggestionItemKey,
               onTap: () {
                 onTapCounter += 1;
+                state.selectSuggestion(data);
               },
               child: Container(
                 color: Colors.red,
@@ -105,9 +107,7 @@ void main() {
             findSuggestions: (query) {
               return ["SUGGESTION"];
             },
-            onChanged: (value) {
-              print(value);
-            },
+            onChanged: (value) => chips = value,
           ),
         ),
       );
@@ -124,12 +124,13 @@ void main() {
       await tester.pumpAndSettle();
 
       /// Get the suggestion widget to tap on it
-      final suggestionWidget = find.byKey(buttonKey);
+      final suggestionWidget = find.byKey(suggestionItemKey);
       expect(suggestionWidget, findsOneWidget);
       expect(onTapCounter, 0);
+      expect(chips, isEmpty);
 
       /// Check that the overlay is still visible
-      expect(chipState.overlayEntry.mounted, isTrue);
+      expect(chipState.isSuggestionOverlayVisible, isTrue);
 
       /// Press the suggestion to trigger its callback
       Offset suggestionWidgetCenter = tester.getCenter(suggestionWidget);
@@ -137,13 +138,15 @@ void main() {
       await gesture.down(suggestionWidgetCenter);
       await tester.pump();
       await gesture.up();
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       /// Check that the suggestion widgets callback has been called
       expect(onTapCounter, 1);
+      expect(chips.length, 1);
 
       /// Check that the overlay is no longer visible
-      expect(chipState.overlayEntry.mounted, isFalse);
+      expect(find.byKey(suggestionItemKey), findsNothing);
+      expect(chipState.isSuggestionOverlayVisible, isFalse);
     });
   });
 }

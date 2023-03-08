@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chips_selector/flutter_chips_selector.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const _MyApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class _MyApp extends StatelessWidget {
+  const _MyApp();
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       home: const Scaffold(
         body: Center(
           child: SizedBox(
-            width: 100,
+            width: 400,
             child: MyWidget(),
           ),
         ),
@@ -27,7 +27,8 @@ class MyApp extends StatelessWidget {
 class MyWidget extends StatelessWidget {
   const MyWidget({Key? key}) : super(key: key);
 
-  static final FocusNode fn = FocusNode();
+  static final FocusNode fn = FocusNode(debugLabel: "textFocus");
+  static final FocusNode fnTile = FocusNode(debugLabel: "tile");
 
   static final GlobalKey<ChipsSelectorState> _key = GlobalKey();
 
@@ -36,7 +37,6 @@ class MyWidget extends StatelessWidget {
     return ChipsSelector<String>(
       key: _key,
       currentFocus: fn,
-      autofocus: true,
       underlineColor: Colors.black,
       chipBuilder: (context, state, data) => Container(
         decoration: BoxDecoration(
@@ -53,10 +53,14 @@ class MyWidget extends StatelessWidget {
         focusColor: Colors.red,
         hoverColor: Colors.black26,
       ),
+      autofocus: true,
       suggestionBuilder: (context, state, data) {
+        // TODO would like to know here whether data is selected or not
+        //  add state.isSelected(data) and return null;
         return ListTile(
+          focusNode: fnTile,
+          key: ValueKey(data),
           onTap: () {
-            print("Hello");
             _key.currentState!.selectSuggestion(data);
           },
           title: Container(
