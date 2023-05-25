@@ -335,6 +335,10 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                         _suggestionsWithoutActiveChips =
                             _suggestionsResult.where((element) => !_activeChips.contains(element)).toList();
                         if (_suggestionsWithoutActiveChips.length > 0) {
+                          _selectedIndex = 0;
+                        } else {
+                          _selectedIndex = -1;
+                        }
                       });
                     } else {
                       _suggestionsWithoutActiveChips.clear();
