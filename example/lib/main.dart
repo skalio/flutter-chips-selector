@@ -35,6 +35,7 @@ class MyWidget extends StatelessWidget {
       children: [
         const Text(
             "Type to show suggestion Overlay\nChoose with Arrow-Up and Arrow-Down or with mouse\nSelect with Enter\nRemove with Backspace\nClick Chip to remove\n\nEnter to complete and go to next focus (if no suggestion overlay open)"),
+        const Text("\n\nIn this example: Start your input with a # to get the input 1:1 as a suggestion"),
         const SizedBox(height: 40),
         ChipsSelector<String>(
           nextFocus: nextFocus,
@@ -65,14 +66,16 @@ class MyWidget extends StatelessWidget {
               ),
             );
           },
-          findSuggestions: (query) => [
-            "Chip Option 1",
-            "Chip Option 2",
-            "Chip Option 3",
-            "Chip Option 4",
-            "Chip Option 5",
-            "Chip Option 6",
-          ],
+          findSuggestions: (query) => query.startsWith("#")
+              ? [query]
+              : [
+                  "Chip Option 1",
+                  "Chip Option 2",
+                  "Chip Option 3",
+                  "Chip Option 4",
+                  "Chip Option 5",
+                  "Chip Option 6",
+                ],
           onChanged: (v) {
             // use this to sync your local state with the ChipsSelector's one
           },
