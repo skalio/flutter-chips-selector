@@ -124,11 +124,11 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   );
 
   /// The chips that are already included
-  List<T> _items = [];
+  List<T> _activeChips = [];
 
   /// Suggestions returned by [widget.findSuggestions]
-  /// filtered to remove duplicates that are already in [_items]
-  List<T> _suggestionsWithoutItems = [];
+  /// filtered to remove duplicates that are already in [_activeChips]
+  List<T> _suggestionsWithoutActiveChips = [];
 
   int _selectedIndex = -1;
   int get selectedSuggestionIndex => _selectedIndex;
@@ -144,7 +144,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   @override
   void initState() {
     super.initState();
-    _items.addAll(widget.initialValue);
+    _activeChips.addAll(widget.initialValue);
     _setupFocusNodes();
   }
 
@@ -170,7 +170,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   void didUpdateWidget(covariant ChipsSelector<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(oldWidget.initialValue, widget.initialValue)) {
-      _items = [...widget.initialValue];
+      _activeChips = [...widget.initialValue];
       _textController.clear();
     }
     _updateFocusNodes(oldWidget);
@@ -233,7 +233,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
 
   List<Widget> _getWrapWidgets() {
     List<Widget> wrapWidgets = [];
-    _items.forEach((item) {
+    _activeChips.forEach((item) {
       wrapWidgets.add(widget.chipBuilder(context, this, item));
     });
     wrapWidgets.add(SizedBox(key: _endOfChips, width: 0));
@@ -257,13 +257,13 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
             LogicalKeySet(LogicalKeyboardKey.backspace): _DeleteLastChipIntent(),
           },
           actions: {
-            if (_textController.text.length == 0 && _items.length > 0)
+            if (_textController.text.length == 0 && _activeChips.length > 0)
               _DeleteLastChipIntent: CallbackAction<_DeleteLastChipIntent>(
                 onInvoke: (_) {
                   setState(() {
-                    _items.removeLast();
+                    _activeChips.removeLast();
                   });
-                  widget.onChanged(_items);
+                  widget.onChanged(_activeChips);
 
                   return;
                 },
@@ -274,10 +274,11 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
             _SuggestionsTraverseDownIntent: CallbackAction<DirectionalFocusIntent>(
               onInvoke: (intent) {
                 assert(intent.direction == TraversalDirection.down);
-                if (_suggestionsWithoutItems.length > 0) {
+                if (_suggestionsWithoutActiveChips.length > 0) {
                   setState(
                     () {
-                      _selectedIndex = (_selectedIndex + 1 >= _suggestionsWithoutItems.length) ? 0 : _selectedIndex + 1;
+                      _selectedIndex =
+                          (_selectedIndex + 1 >= _suggestionsWithoutActiveChips.length) ? 0 : _selectedIndex + 1;
                       suggestionOverlayEntry?.markNeedsBuild();
                     },
                   );
@@ -289,11 +290,11 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
             _SuggestionsTraverseUpIntent: CallbackAction<DirectionalFocusIntent>(
               onInvoke: (intent) {
                 assert(intent.direction == TraversalDirection.up);
-                if (_suggestionsWithoutItems.length > 0) {
+                if (_suggestionsWithoutActiveChips.length > 0) {
                   setState(
                     () {
                       _selectedIndex =
-                          (_selectedIndex - 1 < 0) ? _suggestionsWithoutItems.length - 1 : _selectedIndex - 1;
+                          (_selectedIndex - 1 < 0) ? _suggestionsWithoutActiveChips.length - 1 : _selectedIndex - 1;
                       suggestionOverlayEntry?.markNeedsBuild();
                     },
                   );
@@ -304,7 +305,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
             ),
           },
           child: Padding(
-            padding: EdgeInsets.only(top: _items.length > 0 ? 5 : 0),
+            padding: EdgeInsets.only(top: _activeChips.length > 0 ? 5 : 0),
             child: TextField(
               focusNode: _textFieldFocusNode,
               controller: _textController,
@@ -331,12 +332,12 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                     if (newText.length > 1) {
                       List<T> _suggestionsResult = (await widget.findSuggestions(newText)).cast();
                       setState(() {
-                        _suggestionsWithoutItems =
-                            _suggestionsResult.where((element) => !_items.contains(element)).toList();
-                        if (_suggestionsWithoutItems.length > 0) _selectedIndex = 0;
+                        _suggestionsWithoutActiveChips =
+                            _suggestionsResult.where((element) => !_activeChips.contains(element)).toList();
+                        if (_suggestionsWithoutActiveChips.length > 0) {
                       });
                     } else {
-                      _suggestionsWithoutItems.clear();
+                      _suggestionsWithoutActiveChips.clear();
                       _selectedIndex = -1;
                     }
                     suggestionOverlayEntry?.markNeedsBuild();
@@ -362,7 +363,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
 
   void _onEnterSelectOrMoveNextFocus() {
     if (_selectedIndex > -1) {
-      selectSuggestion(_suggestionsWithoutItems[_selectedIndex]);
+      selectSuggestion(_suggestionsWithoutActiveChips[_selectedIndex]);
       setState(() {
         _selectedIndex = -1;
       });
@@ -371,7 +372,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
     }
   }
 
-  bool get _overlayIsVisible => _suggestionsWithoutItems.isNotEmpty;
+  bool get _overlayIsVisible => _suggestionsWithoutActiveChips.isNotEmpty;
   OverlayEntry _createOverlayEntry() {
     RenderBox? renderBox = context.findRenderObject() as RenderBox?;
     var size = renderBox?.size;
@@ -405,11 +406,11 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                         shrinkWrap: true,
                         addAutomaticKeepAlives: true,
                         padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: _suggestionsWithoutItems.length,
+                        itemCount: _suggestionsWithoutActiveChips.length,
                         itemBuilder: (BuildContext context, int index) {
                           return Container(
                             color: _selectedIndex == index ? Theme.of(context).hoverColor : Colors.transparent,
-                            child: widget.suggestionBuilder(context, this, _suggestionsWithoutItems[index]),
+                            child: widget.suggestionBuilder(context, this, _suggestionsWithoutActiveChips[index]),
                           );
                         },
                       ),
@@ -426,34 +427,34 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
 
   void deleteChip(T data) {
     setState(() {
-      _items.remove(data);
-      widget.onChanged(_items);
+      _activeChips.remove(data);
+      widget.onChanged(_activeChips);
     });
   }
 
   void selectSuggestion(T data) {
-    bool exists = _items.any((m) => m == data);
+    bool exists = _activeChips.any((m) => m == data);
     if (!exists) {
       setState(() {
         _textController.clear();
-        _items.add(data);
-        _suggestionsWithoutItems.clear();
+        _activeChips.add(data);
+        _suggestionsWithoutActiveChips.clear();
       });
-      widget.onChanged(_items);
+      widget.onChanged(_activeChips);
       suggestionOverlayEntry?.markNeedsBuild();
     }
   }
 
   void triggerChange() {
-    widget.onChanged(_items);
+    widget.onChanged(_activeChips);
   }
 
   void clearInput() {
     setState(() {
       _textController.clear();
-      _items = [];
+      _activeChips = [];
       _selectedIndex = -1;
-      _suggestionsWithoutItems = [];
+      _suggestionsWithoutActiveChips = [];
     });
   }
 
