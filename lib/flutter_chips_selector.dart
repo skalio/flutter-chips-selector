@@ -34,6 +34,7 @@ class ChipsSelector<T> extends StatefulWidget {
     this.labelColor,
     this.currentFocus,
     this.nextFocus,
+    this.suggestionPadding = const EdgeInsets.symmetric(vertical: 8),
   }) : super(key: key);
 
   final ChipsBuilder<T> chipBuilder;
@@ -59,6 +60,9 @@ class ChipsSelector<T> extends StatefulWidget {
 
   final FocusNode? currentFocus;
   final FocusNode? nextFocus;
+
+  /// Padding to add to the box containing the list of suggestions
+  final EdgeInsets suggestionPadding;
 
   @override
   State<StatefulWidget> createState() => ChipsSelectorState<T>();
@@ -409,7 +413,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                         controller: _overlayScrollController,
                         shrinkWrap: true,
                         addAutomaticKeepAlives: true,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: widget.suggestionPadding,
                         itemCount: _suggestionsWithoutActiveChips.length,
                         itemBuilder: (BuildContext context, int index) {
                           return Container(
