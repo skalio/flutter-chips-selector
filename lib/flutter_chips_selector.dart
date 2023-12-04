@@ -153,6 +153,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   }
 
   void _textFieldFocusListener() {
+    setState(() {});
     if (_textFieldFocusNode.hasFocus) {
       if (suggestionOverlayEntry != null) return;
       suggestionOverlayEntry = _createOverlayEntry();
