@@ -153,6 +153,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   }
 
   void _textFieldFocusListener() {
+    setState(() {});
     if (_textFieldFocusNode.hasFocus) {
       if (suggestionOverlayEntry != null) return;
       suggestionOverlayEntry = _createOverlayEntry();
@@ -205,6 +206,8 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
           child: MouseRegion(
             cursor: SystemMouseCursors.text,
             child: InputDecorator(
+              isFocused: _textFieldFocusNode.hasFocus,
+              isEmpty: _textController.text.isEmpty && _activeChips.isEmpty,
               decoration: widget.decoration?.copyWith(
                     labelStyle: TextStyle(color: widget.labelColor),
                   ) ??
@@ -357,10 +360,11 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
               autofocus: widget.autofocus ?? true,
               style: widget.style ?? Theme.of(context).textTheme.bodyText2,
               cursorColor: Theme.of(context).textSelectionTheme.cursorColor,
+              // Need to set decoration to empty here, since we handle this via a InputDecorate further up the tree,
+              // so that the decoration surounds our chips as well
               decoration: InputDecoration(
                 enabledBorder: UnderlineInputBorder(borderSide: BorderSide(style: BorderStyle.none)),
-                focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: widget.underlineColor, width: 2, style: BorderStyle.solid)),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(style: BorderStyle.none)),
               ),
             ),
           ),
