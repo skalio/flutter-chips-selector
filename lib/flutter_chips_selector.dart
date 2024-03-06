@@ -35,6 +35,7 @@ class ChipsSelector<T> extends StatefulWidget {
     this.currentFocus,
     this.nextFocus,
     this.suggestionPadding = const EdgeInsets.symmetric(vertical: 8),
+    this.textEditingController,
   }) : super(key: key);
 
   final ChipsBuilder<T> chipBuilder;
@@ -63,6 +64,8 @@ class ChipsSelector<T> extends StatefulWidget {
 
   /// Padding to add to the box containing the list of suggestions
   final EdgeInsets suggestionPadding;
+
+  final TextEditingController? textEditingController;
 
   @override
   State<StatefulWidget> createState() => ChipsSelectorState<T>();
@@ -106,7 +109,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
     }
   }
 
-  final TextEditingController _textController = TextEditingController();
+  late TextEditingController _textController;
   final ScrollController _overlayScrollController = ScrollController();
   final GlobalKey editKey = GlobalKey();
   @visibleForTesting
@@ -148,6 +151,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   @override
   void initState() {
     super.initState();
+    _textController = widget.textEditingController ?? TextEditingController();
     _activeChips.addAll(widget.initialValue);
     _setupFocusNodes();
   }
@@ -174,6 +178,14 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
   @override
   void didUpdateWidget(covariant ChipsSelector<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.textEditingController != widget.textEditingController) {
+      if (oldWidget.textEditingController == null) {
+        _textController.dispose();
+      }
+      _textController = widget.textEditingController ?? TextEditingController();
+    }
+
     if (!listEquals(oldWidget.initialValue, widget.initialValue)) {
       _activeChips = [...widget.initialValue];
       _textController.clear();
@@ -183,7 +195,9 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
 
   @override
   void dispose() {
-    _textController.dispose();
+    if (widget.textEditingController == null) {
+      _textController.dispose();
+    }
     _overlayScrollController.dispose();
     _focusableActionDetectorFocusNode.dispose();
     _rawKeyboardListenerFocusNode.dispose();
