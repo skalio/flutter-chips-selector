@@ -372,7 +372,7 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
               minLines: 1,
               maxLines: 1,
               autofocus: widget.autofocus ?? true,
-              style: widget.style ?? Theme.of(context).textTheme.bodyText2,
+              style: widget.style ?? Theme.of(context).textTheme.bodyMedium,
               cursorColor: Theme.of(context).textSelectionTheme.cursorColor,
               // Need to set decoration to empty here, since we handle this via a InputDecorate further up the tree,
               // so that the decoration surounds our chips as well
