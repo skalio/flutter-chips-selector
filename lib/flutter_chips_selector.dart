@@ -16,7 +16,7 @@ typedef ChipsInputSuggestions<T> = FutureOr<List<T>> Function(String query);
 typedef ParsedItems<T> = FutureOr<List<T>> Function(String query);
 
 class ChipsSelector<T> extends StatefulWidget {
-  ChipsSelector({
+  const ChipsSelector({
     Key? key,
     this.initialValue = const [],
     required this.chipBuilder,
@@ -139,14 +139,17 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
 
   int _selectedIndex = -1;
   int get selectedSuggestionIndex => _selectedIndex;
-  Duration _scrollDuration = Duration(milliseconds: 100);
+  Duration _scrollDuration = const Duration(milliseconds: 100);
   double _suggestionItemHeight = 65;
 
   BoxDecoration defaultDecoration = BoxDecoration(
-      border: Border.all(
-        color: Colors.grey,
-      ),
-      borderRadius: BorderRadius.all(Radius.circular(5)));
+    border: Border.all(
+      color: Colors.grey,
+    ),
+    borderRadius: const BorderRadius.all(
+      Radius.circular(5),
+    ),
+  );
 
   @override
   void initState() {
@@ -217,31 +220,37 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         Expanded(
-          child: MouseRegion(
-            cursor: SystemMouseCursors.text,
-            child: InputDecorator(
-              isFocused: _textFieldFocusNode.hasFocus,
-              isEmpty: _textController.text.isEmpty && _activeChips.isEmpty,
-              decoration: widget.decoration?.copyWith(
-                    labelStyle: TextStyle(color: widget.labelColor),
-                  ) ??
-                  InputDecoration(),
-              child: FocusTraversalGroup(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Container(
-                      padding: EdgeInsets.all(0),
-                      child: Wrap(
-                        spacing: 2,
-                        runSpacing: 2,
-                        alignment: WrapAlignment.start,
-                        direction: Axis.horizontal,
-                        children: _getWrapWidgets(),
-                      ),
+          child: GestureDetector(
+            onTap: _textFieldFocusNode.hasFocus ? null : _textFieldFocusNode.requestFocus,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.text,
+              child: _HoverBuilder(
+                builder: (isHovering) => InputDecorator(
+                  isFocused: _textFieldFocusNode.hasFocus,
+                  isEmpty: _textController.text.isEmpty && _activeChips.isEmpty,
+                  isHovering: isHovering,
+                  decoration: widget.decoration?.copyWith(
+                        labelStyle: TextStyle(color: widget.labelColor),
+                      ) ??
+                      const InputDecoration(),
+                  child: FocusTraversalGroup(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Container(
+                          padding: const EdgeInsets.all(0),
+                          child: Wrap(
+                            spacing: 2,
+                            runSpacing: 2,
+                            alignment: WrapAlignment.start,
+                            direction: Axis.horizontal,
+                            children: _getWrapWidgets(),
+                          ),
+                        ),
+                        CompositedTransformTarget(link: this._layerLink),
+                      ],
                     ),
-                    CompositedTransformTarget(link: this._layerLink),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -271,11 +280,11 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
         child: FocusableActionDetector(
           focusNode: _focusableActionDetectorFocusNode,
           shortcuts: {
-            LogicalKeySet(LogicalKeyboardKey.arrowDown): _SuggestionsTraverseDownIntent(),
-            LogicalKeySet(LogicalKeyboardKey.arrowUp): _SuggestionsTraverseUpIntent(),
-            LogicalKeySet(LogicalKeyboardKey.enter): SelectIntent(),
-            LogicalKeySet(LogicalKeyboardKey.delete): _DeleteLastChipIntent(),
-            LogicalKeySet(LogicalKeyboardKey.backspace): _DeleteLastChipIntent(),
+            LogicalKeySet(LogicalKeyboardKey.arrowDown): const _SuggestionsTraverseDownIntent(),
+            LogicalKeySet(LogicalKeyboardKey.arrowUp): const _SuggestionsTraverseUpIntent(),
+            LogicalKeySet(LogicalKeyboardKey.enter): const SelectIntent(),
+            LogicalKeySet(LogicalKeyboardKey.delete): const _DeleteLastChipIntent(),
+            LogicalKeySet(LogicalKeyboardKey.backspace): const _DeleteLastChipIntent(),
           },
           actions: {
             if (_textController.text.length == 0 && _activeChips.length > 0)
@@ -376,9 +385,12 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
               cursorColor: Theme.of(context).textSelectionTheme.cursorColor,
               // Need to set decoration to empty here, since we handle this via a InputDecorate further up the tree,
               // so that the decoration surounds our chips as well
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 enabledBorder: UnderlineInputBorder(borderSide: BorderSide(style: BorderStyle.none)),
                 focusedBorder: UnderlineInputBorder(borderSide: BorderSide(style: BorderStyle.none)),
+                fillColor: Colors.transparent,
+                focusColor: Colors.transparent,
+                hoverColor: Colors.transparent,
               ),
             ),
           ),
@@ -416,9 +428,9 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                 elevation: 4.0,
                 child: TapRegion(
                   behavior: HitTestBehavior.opaque,
-                  onTapOutside: (event) {
-                    FocusScope.of(context).unfocus();
-                  },
+                  onTapOutside: !_overlayIsVisible //
+                      ? null
+                      : (_) => FocusScope.of(context).unfocus(),
                   // Visibility is down here because we still want to use the tapRegion of the overlay
                   // if we introduce another tap region outside the overlay for unfocusing the textField
                   // we get the same issues as if we used the default onTapOutside of TextField
@@ -538,9 +550,34 @@ class _SuggestionsTraverseDownIntent extends DirectionalFocusIntent {
 }
 
 class _SuggestionsTraverseUpIntent extends DirectionalFocusIntent {
-  _SuggestionsTraverseUpIntent() : super(TraversalDirection.up);
+  const _SuggestionsTraverseUpIntent() : super(TraversalDirection.up);
 }
 
 class _DeleteLastChipIntent extends Intent {
   const _DeleteLastChipIntent();
+}
+
+class _HoverBuilder extends StatefulWidget {
+  const _HoverBuilder({required this.builder});
+
+  final Widget Function(bool isHovering) builder;
+
+  @override
+  State<_HoverBuilder> createState() => _HoverBuilderState();
+}
+
+class _HoverBuilderState extends State<_HoverBuilder> {
+  bool hovering = false;
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(
+        () => hovering = true,
+      ),
+      onExit: (_) => setState(
+        () => hovering = false,
+      ),
+      child: widget.builder(hovering),
+    );
+  }
 }
