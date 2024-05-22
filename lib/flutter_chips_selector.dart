@@ -428,12 +428,9 @@ class ChipsSelectorState<T> extends State<ChipsSelector<T>> {
                 elevation: 4.0,
                 child: TapRegion(
                   behavior: HitTestBehavior.opaque,
-                  onTapOutside: !_overlayIsVisible
+                  onTapOutside: !_overlayIsVisible //
                       ? null
-                      : (event) {
-                          print("unfocus");
-                          FocusScope.of(context).unfocus();
-                        },
+                      : (_) => FocusScope.of(context).unfocus(),
                   // Visibility is down here because we still want to use the tapRegion of the overlay
                   // if we introduce another tap region outside the overlay for unfocusing the textField
                   // we get the same issues as if we used the default onTapOutside of TextField
